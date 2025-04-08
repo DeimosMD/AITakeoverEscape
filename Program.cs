@@ -7,8 +7,9 @@ public static class Program
     private const ConsoleKey ExitKey = ConsoleKey.Q; // when pressed, exits program
     private const double TargetFramesPerSecond = 30;
     
-    private static List<ConsoleKey> PressedKeys { get; set; } = new(); // all keys pressed during most recent frame
-    private static string Frame { get; set; } = string.Empty; // text to be outputted for current frame
+    internal static string Frame { get; set; } = string.Empty; // text to be outputted for current frame
+    internal static IScene Scene { get; set; } = new IntroScene();
+    internal static List<ConsoleKey> PressedKeys { get; private set; } = new(); // all keys pressed during most recent frame
     
     public static void Main(string[] args)
     {
@@ -30,8 +31,9 @@ public static class Program
     private static void RunUpdates()
     {
         UpdatePressedKeys();
+        Scene.Update();
         Console.Clear();
-        Console.WriteLine(Frame);
+        Console.Write(Frame);
     }
 
     private static void UpdatePressedKeys()
