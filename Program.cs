@@ -10,6 +10,7 @@ public static class Program
     internal static string Frame { get; set; } = string.Empty; // text to be outputted for current frame
     internal static IScene Scene { get; set; } = new IntroScene();
     internal static List<ConsoleKey> PressedKeys { get; private set; } = new(); // all keys pressed during most recent frame
+    internal static double DeltaTime { get; private set; } = 1;
     
     public static void Main(string[] args)
     {
@@ -23,8 +24,9 @@ public static class Program
             RunUpdates();
             stopWatch.Stop();
             var sleepTimeSeconds = Sleep(stopWatch.Elapsed.TotalSeconds);
+            DeltaTime = sleepTimeSeconds + stopWatch.Elapsed.TotalSeconds;
             Frame = string.Empty;
-            Frame += $"FPS: {Math.Round(1 / (sleepTimeSeconds + stopWatch.Elapsed.TotalSeconds))}\n\n";
+            Frame += $"FPS: {Math.Round(1 / DeltaTime)}\n\n";
         }
     }
 

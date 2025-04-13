@@ -4,13 +4,15 @@ internal class GameplayScene : IScene
 {
     private const char PlayerChar = '@';
     private const char RobotChar = '#';
-    private Entity?[,] EntityMap { get; }
+    private const double PlayerMovesPerSecond = 4;
+    private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
-    private List<Robot> RobotList { get; set; }
+    private double PlayerTimeSinceLastMove { get; set; }
+    private List<Robot> RobotList { get; }
 
     internal GameplayScene()
     {
-        EntityMap = new Entity[Map.Width, Map.Height]; 
+        CharMap = new char?[Map.Width, Map.Height]; 
         RobotList = new List<Robot>();
         var rowNum = 0; 
         foreach (var row in Map.DefaultMap) 
@@ -27,7 +29,7 @@ internal class GameplayScene : IScene
                     RobotList.Add(new Robot(colNum, rowNum));
                 }
                 else if (character != ' ')
-                    EntityMap[colNum, rowNum] = new Entity(character);
+                    CharMap[colNum, rowNum] = character;
                 colNum++;
             }
             rowNum++;
@@ -36,29 +38,94 @@ internal class GameplayScene : IScene
 
     void IScene.Update()
     {
-        
+        UpdateRobots();
+        UpdatePlayerMovement();
+        AddCharMapToFrame();
+    }
+
+    private void UpdateRobots()
+    {
+        foreach (var robot in RobotList)
+        {
+           robot.UpdateMovement(CharMap, PlayerPosition); 
+        }
+    }
+
+    private void AddCharMapToFrame()
+    {
+        char[,] charMap = GetDrawableCharMap();
+        for (int row = 0; row < Map.Height; row++)
+        {
+            for (int col = 0; col < Map.Width; col++)
+            {
+                Program.Frame += charMap[col, row];
+            }
+
+            Program.Frame += '\n';
+        }
     }
     
-    private char[,] GetCharMap()
+    private char[,] GetDrawableCharMap()
     {
         char[,] result = new char[Map.Width, Map.Height];
-        
-        for (int row = 0; row < EntityMap.GetLength(1); row++)
+        for (int row = 0; row < Map.Height; row++)
         {
-            for (int col = 0; col < EntityMap.GetLength(0); col++)
+            for (int col = 0; col < Map.Width; col++)
             {
-                var e = EntityMap[col, row];
-                if (e == null)
-                    result[col, row] = ' ';
-                else
-                    result[col, row] = e.Character;
+                var ch = CharMap[col, row];
+                result[col, row] = ch ?? ' ';
             }
         }
         
         result[PlayerPosition.col, PlayerPosition.row] = PlayerChar;
         foreach (var robot in RobotList)
             result[robot.Position.col, robot.Position.row] = RobotChar;
-        
         return result;
+    }
+
+    private void UpdatePlayerMovement()
+    {
+        PlayerTimeSinceLastMove += Program.DeltaTime;
+        if (PlayerTimeSinceLastMove > 1 / PlayerMovesPerSecond)
+        {
+            if (
+                (Program.PressedKeys.Contains(ConsoleKey.UpArrow) || Program.PressedKeys.Contains(ConsoleKey.W))
+                && CharMap[PlayerPosition.col, PlayerPosition.row-1] == null
+                )
+            {
+                PlayerPosition = (PlayerPosition.col, PlayerPosition.row-1);
+                PlayerTimeSinceLastMove = 0;
+                return;
+            }
+
+            if (
+                (Program.PressedKeys.Contains(ConsoleKey.DownArrow) || Program.PressedKeys.Contains(ConsoleKey.S))
+                 && CharMap[PlayerPosition.col, PlayerPosition.row+1] == null
+                )
+            {
+                 PlayerPosition = (PlayerPosition.col, PlayerPosition.row+1);
+                 PlayerTimeSinceLastMove = 0;
+                 return;
+            }
+            
+            if (
+                (Program.PressedKeys.Contains(ConsoleKey.LeftArrow) || Program.PressedKeys.Contains(ConsoleKey.A))
+                     && CharMap[PlayerPosition.col-1, PlayerPosition.row] == null
+                )
+            {
+                 PlayerPosition = (PlayerPosition.col-1, PlayerPosition.row);
+                 PlayerTimeSinceLastMove = 0;
+                 return;
+            }
+                        
+            if (
+                (Program.PressedKeys.Contains(ConsoleKey.RightArrow) || Program.PressedKeys.Contains(ConsoleKey.D))
+                     && CharMap[PlayerPosition.col+1, PlayerPosition.row] == null
+                ) 
+            {
+                 PlayerPosition = (PlayerPosition.col+1, PlayerPosition.row); 
+                 PlayerTimeSinceLastMove = 0;
+            }
+        }
     }
 }

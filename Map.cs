@@ -4,11 +4,13 @@ internal static class Map
 {
     internal static string[] DefaultMap =>
     [
-        "OOOOOOO",
-        "O      ",
-        "O OOOOO",
-        "O@OOOOO",
-        "OOOOOOO"
+        "OOOOOOOOO",
+        "O@      O",
+        "O OOOOO O",
+        "OOOO OOOO",
+        "O O   O O",
+        "O      #O",
+        "OOOOOOOOO"
     ];
     
     internal static int Height => DefaultMap.Length;
