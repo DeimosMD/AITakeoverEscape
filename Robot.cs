@@ -4,7 +4,7 @@ internal class Robot(
     int startCol, int startRow
 ) {
     private const double MovesPerSecond = 5;
-    private const int MaxPathFindingDistance = 10;
+    private const int MaxPathFindingDistance = 7;
     private (int col, int row) MostRecentPosition { get; set; } = (startCol, startRow);
     private double TimeSinceLastMove { get; set; }
     internal (int col, int row) Position { get; private set; } = (startCol, startRow);
