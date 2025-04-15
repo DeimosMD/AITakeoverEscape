@@ -5,10 +5,12 @@ internal class GameplayScene : IScene
     private const char PlayerChar = '@';
     private const char RobotChar = '#';
     private const double PlayerMovesPerSecond = 4;
+    private const int FlashlightRange = 5;
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
     private double PlayerTimeSinceLastMove { get; set; }
     private List<Robot> RobotList { get; }
+    private uint FrameNum { get; set; }
 
     internal GameplayScene()
     {
@@ -38,9 +40,10 @@ internal class GameplayScene : IScene
 
     void IScene.Update()
     {
+        FrameNum++;
         UpdateRobots();
         UpdatePlayerMovement();
-        AddCharMapToFrame();
+        AddVisibleCharMapToFrame();
     }
 
     private void UpdateRobots()
@@ -51,21 +54,69 @@ internal class GameplayScene : IScene
         }
     }
 
-    private void AddCharMapToFrame()
+    private void AddVisibleCharMapToFrame()
     {
-        char[,] charMap = GetDrawableCharMap();
+        char[,] charMap = GetCompleteCharMap();
+        bool isAllVisible = IsAllVisible();
+        List<(int col, int row)> allInFlashlightRange = GetAllInFlashlightRange(FlashlightRange, charMap);
         for (int row = 0; row < Map.Height; row++)
         {
             for (int col = 0; col < Map.Width; col++)
             {
-                Program.Frame += charMap[col, row];
+                if (isAllVisible || charMap[col, row] == '@' || allInFlashlightRange.Contains((col, row)))
+                    Program.Frame += charMap[col, row];
+                else
+                    Program.Frame += ' ';
             }
 
             Program.Frame += '\n';
         }
     }
-    
-    private char[,] GetDrawableCharMap()
+
+    private bool IsAllVisible()
+        => (FrameNum < Program.TargetFramesPerSecond * 1.5 && FrameNum % 2 == 0)
+           || FrameNum < Program.TargetFramesPerSecond;
+
+
+    private List<(int col, int row)> GetAllInFlashlightRange(int reiterations, char[,] charMap)
+    {
+        List<(int col, int row)> results = []; // all non-empty (and non-robot) points visible as result of flashlight
+        List<(int col, int row)> allEmptyFoundList = []; 
+        List<(int col, int row)> recentEmptyFoundList = [PlayerPosition]; // uses player position as starting point
+        for (int i = 0; i < reiterations; i++)
+        {
+            List<(int col, int row)> currentEmptyFoundList = [];
+            foreach (var emptyFoundPoint in recentEmptyFoundList)
+            {
+                foreach (var surroundingPoint in GetSurroundingPoints(emptyFoundPoint))
+                {
+                    if ((charMap[surroundingPoint.col, surroundingPoint.row] == ' ' || 
+                        charMap[surroundingPoint.col, surroundingPoint.row] == '#')
+                        && !allEmptyFoundList.Contains(surroundingPoint))
+                    {
+                        currentEmptyFoundList.Add(surroundingPoint);
+                        allEmptyFoundList.Add(emptyFoundPoint);
+                    }
+                    else if (!results.Contains(surroundingPoint))
+                        results.Add(surroundingPoint);
+                }
+            }
+            recentEmptyFoundList = currentEmptyFoundList;
+        }
+
+        return results;
+    }
+
+    private List<(int col, int row)> GetSurroundingPoints((int col, int row) position)
+        =>
+        [
+            position with { row = position.row + 1},
+            position with { row = position.row - 1},
+            position with { col = position.col + 1},
+            position with { col = position.col - 1}
+        ]; 
+
+    private char[,] GetCompleteCharMap()
     {
         char[,] result = new char[Map.Width, Map.Height];
         for (int row = 0; row < Map.Height; row++)
