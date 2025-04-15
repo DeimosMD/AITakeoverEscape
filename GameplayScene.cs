@@ -5,7 +5,8 @@ internal class GameplayScene : IScene
     private const char PlayerChar = '@';
     private const char RobotChar = '#';
     private const double PlayerMovesPerSecond = 4;
-    private const int FlashlightRange = 5;
+    private const int FlashlightFloodFillRange = 6;
+    private const double FlashlightAbsoluteDistanceRange = 4;
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
     private double PlayerTimeSinceLastMove { get; set; }
@@ -58,7 +59,9 @@ internal class GameplayScene : IScene
     {
         char[,] charMap = GetCompleteCharMap();
         bool isAllVisible = IsAllVisible();
-        List<(int col, int row)> allInFlashlightRange = GetAllInFlashlightRange(FlashlightRange, charMap);
+        List<(int col, int row)> allInFlashlightRange = 
+            GetAllInFloodFillRange(FlashlightFloodFillRange, charMap);
+        allInFlashlightRange = FilterForInFlashLightAbsoluteRange(allInFlashlightRange);
         for (int row = 0; row < Map.Height; row++)
         {
             for (int col = 0; col < Map.Width; col++)
@@ -78,7 +81,7 @@ internal class GameplayScene : IScene
            || FrameNum < Program.TargetFramesPerSecond;
 
 
-    private List<(int col, int row)> GetAllInFlashlightRange(int reiterations, char[,] charMap)
+    private List<(int col, int row)> GetAllInFloodFillRange(int reiterations, char[,] charMap)
     {
         List<(int col, int row)> results = []; // all non-empty (and non-robot) points visible as result of flashlight
         List<(int col, int row)> allEmptyFoundList = []; 
@@ -114,7 +117,23 @@ internal class GameplayScene : IScene
             position with { row = position.row - 1},
             position with { col = position.col + 1},
             position with { col = position.col - 1}
-        ]; 
+        ];
+
+    private List<(int col, int row)> FilterForInFlashLightAbsoluteRange(List<(int col, int row)> positionList)
+    {
+        List<(int col, int row)> results = new();
+        foreach (var position in positionList)
+        {
+            if (FlashlightAbsoluteDistanceRange >=
+                Math.Sqrt(Square(PlayerPosition.row - position.row) + Square(PlayerPosition.col - position.col)))
+            {
+                results.Add(position);
+            }
+        }
+        return results;
+    }
+
+    private int Square(int x) => x * x;
 
     private char[,] GetCompleteCharMap()
     {
