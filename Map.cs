@@ -6,10 +6,10 @@ internal static class Map
     [
         "OOOOOOOOOOOOOOOO",
         "O              O",
-        "O OOOOO OOOOOO O",
-        "O      @O      O",
+        "O OOOOOOOOOOOO O",
+        "O      @  O    O",
         "O OOOOO O O    O",
-        "O         O    O",
+        "O       O      O",
         "OOOOOOOOOOOOOOOO"
     ];
     
