@@ -12,6 +12,8 @@ internal class GameplayScene : IScene
     private double PlayerTimeSinceLastMove { get; set; }
     private List<Robot> RobotList { get; }
     private uint FrameNum { get; set; }
+    private GameplayMenuPrompt? MenuPrompt { get; set; }
+    private bool IsFlashlightActive { get; set; }
 
     internal GameplayScene()
     {
@@ -45,8 +47,25 @@ internal class GameplayScene : IScene
         UpdateRobots();
         UpdatePlayerMovement();
         AddVisibleCharMapToFrame();
+        MenuPrompt?.Update();
+        UpdateActivities();
     }
 
+    private void UpdateActivities()
+    {
+        if (Math.Abs(FrameNum - Program.TargetFramesPerSecond * 2) <= 0.1)
+            MenuPrompt = new GameplayMenuPrompt(
+                "It seems the lights have gone out.",
+                ["Activate flashlight"],
+                _ =>
+                {
+                    IsFlashlightActive = true;
+                    MenuPrompt = null;
+                },
+                (ConsoleKey.Spacebar, "Spacebar")
+            );
+    }
+    
     private void UpdateRobots()
     {
         foreach (var robot in RobotList)
@@ -66,7 +85,8 @@ internal class GameplayScene : IScene
         {
             for (int col = 0; col < Map.Width; col++)
             {
-                if (isAllVisible || charMap[col, row] == '@' || allInFlashlightRange.Contains((col, row)))
+                if (isAllVisible || charMap[col, row] == '@' || 
+                    (allInFlashlightRange.Contains((col, row)) && IsFlashlightActive))
                     Program.Frame += charMap[col, row];
                 else
                     Program.Frame += ' ';
