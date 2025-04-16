@@ -4,7 +4,7 @@ internal class GameplayScene : IScene
 {
     private const char PlayerChar = '@';
     private const char RobotChar = '#';
-    private const double PlayerMovesPerSecond = 4;
+    private const double PlayerMovesPerSecond = 5;
     private const int FlashlightFloodFillRange = 6;
     private const double FlashlightAbsoluteDistanceRange = 4;
     private char?[,] CharMap { get; }
