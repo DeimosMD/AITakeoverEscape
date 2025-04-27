@@ -4,7 +4,7 @@ internal class GameplayScene : IScene
 {
     private const char PlayerRenderChar = '@';
     private const char RobotRenderChar = '#';
-    internal const char ClosedVerticalDoorRenderChar = '-'; // vertical is in a door where one travels vertically
+    internal const char ClosedVerticalDoorRenderChar = '-'; // vertical as in a door where one travels vertically
     internal const char OpenVerticalDoorRenderChar = '/';
     internal const char ClosedHorizontalDoorRenderChar = '|';
     internal const char OpenHorizontalDoorRenderChar = '_';
