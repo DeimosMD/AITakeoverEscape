@@ -11,6 +11,8 @@ internal class GameplayScene : IScene
     private const double PlayerMovesPerSecond = 5;
     private const int FlashlightFloodFillRange = 6;
     private const double FlashlightAbsoluteDistanceRange = 4;
+    private const int ShipLightsFloodFillRange = 12;
+    private const double ShipLightsAbsoluteDistanceRange = 8;
     
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
@@ -110,16 +112,19 @@ internal class GameplayScene : IScene
 
     private void AddVisibleCharMapToFrame(char[,] completeCharMap)
     {
-        bool isAllVisible = IsAllVisible();
-        List<(int col, int row)> allInFlashlightRange = 
-            GetAllInFloodFillRange(FlashlightFloodFillRange, completeCharMap);
-        allInFlashlightRange = FilterForInFlashLightAbsoluteRange(allInFlashlightRange);
+        bool areShipLightsOn = AreShipLightsOn();
+        List<(int col, int row)> allLitUp = GetAllInFloodFillRange(
+                areShipLightsOn ? ShipLightsFloodFillRange : FlashlightFloodFillRange, completeCharMap);
+        allLitUp = FilterForInFlashLightAbsoluteRange(
+            allLitUp, areShipLightsOn ? ShipLightsAbsoluteDistanceRange : FlashlightAbsoluteDistanceRange);
         for (int row = 0; row < Map.Height; row++)
         {
             for (int col = 0; col < Map.Width; col++)
             {
-                if (isAllVisible || completeCharMap[col, row] == '@' || 
-                    (allInFlashlightRange.Contains((col, row)) && IsFlashlightActive))
+                if (
+                    completeCharMap[col, row] == '@' || 
+                    (allLitUp.Contains((col, row)) && (areShipLightsOn || IsFlashlightActive))
+                )
                     Program.Frame += completeCharMap[col, row];
                 else
                     Program.Frame += ' ';
@@ -129,7 +134,7 @@ internal class GameplayScene : IScene
         }
     }
 
-    private bool IsAllVisible()
+    private bool AreShipLightsOn()
         => (FrameNum < Program.TargetFramesPerSecond * 1.5 && FrameNum % 2 == 0)
            || FrameNum < Program.TargetFramesPerSecond;
 
@@ -162,23 +167,24 @@ internal class GameplayScene : IScene
         return results;
     }
 
-    private List<(int col, int row)> GetSurroundingPoints((int col, int row) position)
-        =>
-        [
+    private List<(int col, int row)> GetSurroundingPoints((int col, int row) position) 
+        => [
             position with { row = position.row + 1},
             position with { row = position.row - 1},
             position with { col = position.col + 1},
             position with { col = position.col - 1}
         ];
 
-    private List<(int col, int row)> FilterForInFlashLightAbsoluteRange(List<(int col, int row)> positionList)
-    {
+    private List<(int col, int row)> FilterForInFlashLightAbsoluteRange(
+        List<(int col, int row)> positionList, double range
+    ) {
         List<(int col, int row)> results = new();
         foreach (var position in positionList)
         {
-            if (FlashlightAbsoluteDistanceRange >=
-                Math.Sqrt(Square(PlayerPosition.row - position.row) + Square(PlayerPosition.col - position.col)))
-            {
+            if (
+                range >=
+                Math.Sqrt(Square(PlayerPosition.row - position.row) + Square(PlayerPosition.col - position.col))
+            ) {
                 results.Add(position);
             }
         }
