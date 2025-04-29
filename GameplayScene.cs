@@ -89,9 +89,9 @@ internal class GameplayScene : IScene
     private void UpdateMenuPrompts()
     {
         MenuPrompt = null;
-        foreach (char c in GetDefaultMapCharsNextToPlayer())
+        foreach (var charNextToPlayer in SortImmediateToEnd(GetDefaultMapCharsNextToPlayer()))
         {
-            int ci = CharToInt(c);
+            int ci = CharToInt(charNextToPlayer.ch);
             if (ci != -1)
             {
                 if (Map.FirstAccessibleDoors.Contains(ci))
@@ -314,9 +314,9 @@ internal class GameplayScene : IScene
         => c == ' ' || c == RobotRenderChar || c == PlayerRenderChar
                     || c == OpenHorizontalDoorRenderChar || c == OpenVerticalDoorRenderChar;
 
-    private char[] GetDefaultMapCharsNextToPlayer()
+    private (bool immediate, char ch)[] GetDefaultMapCharsNextToPlayer()
     {
-        var results = new List<char>();
+        var results = new List<(bool, char)>();
         for (int col = PlayerPosition.col - 1; col <= PlayerPosition.col + 1; col++)
         {
             for (int row = PlayerPosition.row - 1; row <= PlayerPosition.row + 1; row++)
@@ -324,7 +324,7 @@ internal class GameplayScene : IScene
                 if (PlayerPosition.col == col && PlayerPosition.row == row)
                     continue;
                 if (Map.DefaultMap[row][col] != ' ')
-                    results.Add(Map.DefaultMap[row][col]);
+                    results.Add((row == PlayerPosition.row || col == PlayerPosition.col, Map.DefaultMap[row][col]));
             }
         }
         return results.ToArray();
@@ -332,4 +332,16 @@ internal class GameplayScene : IScene
 
     private void ToggleDoor(int i)
         => Doors[i] = Doors[i] with { isOpen = !Doors[i].isOpen};
+
+    private (bool immediate, char ch)[] SortImmediateToEnd((bool immediate, char ch)[] list)
+    {
+        var resultPartOne = new List<(bool, char)>();
+        var resultPartTwo = new List<(bool, char)>();
+        foreach (var item in list)
+        {
+            if (item.immediate) resultPartTwo.Add(item);
+            else resultPartOne.Add(item);
+        }
+        return resultPartOne.Concat(resultPartTwo).ToArray();
+    }
 }
