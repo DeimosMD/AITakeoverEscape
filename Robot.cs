@@ -166,7 +166,7 @@ internal class Robot(
         {
             for (var row = Math.Min(posOne.row, posTwo.row); row <= Math.Max(posOne.row, posTwo.row); row++)
             {
-                if (GameplayScene.IsEmptyOrPermeable(charMap[posOne.col, row]))
+                if (!GameplayScene.IsEmptyOrPermeable(charMap[posOne.col, row]))
                     return false;
             }
             return true;
@@ -175,7 +175,7 @@ internal class Robot(
         {
             for (var col = Math.Min(posOne.col, posTwo.col); col <= Math.Max(posOne.col, posTwo.col); col++) 
             { 
-                if (GameplayScene.IsEmptyOrPermeable(charMap[col, posOne.row])) 
+                if (!GameplayScene.IsEmptyOrPermeable(charMap[col, posOne.row])) 
                     return false;
             }
             return true;

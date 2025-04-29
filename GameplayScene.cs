@@ -311,7 +311,7 @@ internal class GameplayScene : IScene
     }
 
     internal static bool IsEmptyOrPermeable(char c)
-        => c == ' ' || c == RobotRenderChar
+        => c == ' ' || c == RobotRenderChar || c == PlayerRenderChar
                     || c == OpenHorizontalDoorRenderChar || c == OpenVerticalDoorRenderChar;
 
     private char[] GetDefaultMapCharsNextToPlayer()
