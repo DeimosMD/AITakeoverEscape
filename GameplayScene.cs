@@ -4,10 +4,10 @@ internal class GameplayScene : IScene
 {
     private const char PlayerRenderChar = '@';
     private const char RobotRenderChar = '#';
-    internal const char ClosedVerticalDoorRenderChar = '-'; // vertical as in a door where one travels vertically
-    internal const char OpenVerticalDoorRenderChar = '/';
-    internal const char ClosedHorizontalDoorRenderChar = '|';
-    internal const char OpenHorizontalDoorRenderChar = '_';
+    private const char ClosedVerticalDoorRenderChar = '-'; // vertical as in a door where one travels vertically
+    private const char OpenVerticalDoorRenderChar = '/';
+    private const char ClosedHorizontalDoorRenderChar = '|';
+    private const char OpenHorizontalDoorRenderChar = '_';
     private const double PlayerMovesPerSecond = 5;
     private const int FlashlightFloodFillRange = 6;
     private const double FlashlightAbsoluteDistanceRange = 4;
@@ -22,7 +22,7 @@ internal class GameplayScene : IScene
     private GameplayMenuPrompt? MenuPrompt { get; set; }
     private bool IsFlashlightActive { get; set; }
     private List<(char character, (int col, int row) position, bool isPickedUp)> ItemList { get; }
-    private List<(int ID, (int col, int row) positoin, bool isOpen)> DoorList { get; }
+    private ((int col, int row) position, bool isOpen)[] Doors { get; }
     private List<(char character, (int col, int row) position)> SpecialInteractableList { get; }
 
     internal GameplayScene()
@@ -30,7 +30,7 @@ internal class GameplayScene : IScene
         CharMap = new char?[Map.Width, Map.Height]; 
         RobotList = new List<Robot>();
         ItemList = new();
-        DoorList = new();
+        Doors = new ((int col, int row) position, bool isOpen)[Map.TotalDoorCount];
         SpecialInteractableList = new();
         PullFromMap();
     }
@@ -62,7 +62,7 @@ internal class GameplayScene : IScene
           }
           else if (CharToInt(c) != -1)
           {
-              DoorList.Add((CharToInt(c), pos, false));
+              Doors[CharToInt(c)] = (pos, false);
           }
           else if (Map.ItemCharArray.Contains(c)) 
           { 
@@ -72,7 +72,7 @@ internal class GameplayScene : IScene
           { 
               SpecialInteractableList.Add((c, pos));
           }
-          else if (c != ' ') 
+          else if (c != ' ')
               CharMap[pos.col, pos.row] = c;
     }
 
@@ -80,7 +80,7 @@ internal class GameplayScene : IScene
     {
         FrameNum++;
         char[,] completeCharMap = GetCompleteCharMap();
-        UpdateRobots();
+        UpdateRobots(completeCharMap);
         UpdatePlayerMovement(completeCharMap);
         AddVisibleCharMapToFrame(completeCharMap);
         UpdateMenuPrompts();
@@ -88,25 +88,44 @@ internal class GameplayScene : IScene
 
     private void UpdateMenuPrompts()
     {
-        if (Math.Abs(FrameNum - Program.TargetFramesPerSecond * 2) <= 0.1)
+        MenuPrompt = null;
+        foreach (char c in GetDefaultMapCharsNextToPlayer())
+        {
+            int ci = CharToInt(c);
+            if (ci != -1)
+            {
+                if (Map.FirstAccessibleDoors.Contains(ci))
+                {
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "You have the key to this door.",
+                        [Doors[ci].isOpen ? "Close door" : "Open door"],
+                        _ =>
+                        {
+                            ToggleDoor(ci);
+                        },
+                        (ConsoleKey.Spacebar, "Spacebar")
+                    );
+                }
+            }
+        }
+        if (FrameNum >= Program.TargetFramesPerSecond * 2 && !IsFlashlightActive)
             MenuPrompt = new GameplayMenuPrompt(
                 "It seems the lights have gone out.",
                 ["Activate flashlight"],
                 _ =>
                 {
                     IsFlashlightActive = true;
-                    MenuPrompt = null;
                 },
                 (ConsoleKey.Spacebar, "Spacebar")
             );
         MenuPrompt?.Update();
     }
     
-    private void UpdateRobots()
+    private void UpdateRobots(char [,] completeCharMap)
     {
         foreach (var robot in RobotList)
         {
-           robot.UpdateMovement(CharMap, PlayerPosition); 
+           robot.UpdateMovement(completeCharMap, PlayerPosition); 
         }
     }
 
@@ -141,7 +160,7 @@ internal class GameplayScene : IScene
 
     private List<(int col, int row)> GetAllInFloodFillRange(int reiterations, char[,] charMap)
     {
-        List<(int col, int row)> results = []; // all non-empty (and non-robot) points visible as result of flashlight
+        List<(int col, int row)> results = []; // all non-permeable points visible as result of flashlight
         List<(int col, int row)> allEmptyFoundList = []; 
         List<(int col, int row)> recentEmptyFoundList = [PlayerPosition]; // uses player position as starting point
         for (int i = 0; i < reiterations; i++)
@@ -211,11 +230,16 @@ internal class GameplayScene : IScene
         foreach (var specialInteractable in SpecialInteractableList)
             result[specialInteractable.position.col, specialInteractable.position.row] 
                 = specialInteractable.character;
-        foreach (var door in DoorList) 
-            if (door.isOpen) result[door.positoin.col, door.positoin.row] 
-                = Map.IsDoorVertical(door.ID) ? OpenVerticalDoorRenderChar : OpenHorizontalDoorRenderChar;
-            else result[door.positoin.col, door.positoin.row] 
-                = Map.IsDoorVertical(door.ID) ? ClosedVerticalDoorRenderChar : ClosedHorizontalDoorRenderChar;
+        for (var i = 0; i < Doors.Length; i++)
+        {
+            var door = Doors[i];
+            if (door.isOpen)
+                result[door.position.col, door.position.row]
+                    = Map.IsDoorVertical(i) ? OpenVerticalDoorRenderChar : OpenHorizontalDoorRenderChar;
+            else
+                result[door.position.col, door.position.row]
+                    = Map.IsDoorVertical(i) ? ClosedVerticalDoorRenderChar : ClosedHorizontalDoorRenderChar;
+        }
         result[PlayerPosition.col, PlayerPosition.row] = PlayerRenderChar; 
         foreach (var robot in RobotList) 
             result[robot.Position.col, robot.Position.row] = RobotRenderChar;
@@ -286,7 +310,26 @@ internal class GameplayScene : IScene
         }
     }
 
-    private bool IsEmptyOrPermeable(char c)
+    internal static bool IsEmptyOrPermeable(char c)
         => c == ' ' || c == RobotRenderChar
                     || c == OpenHorizontalDoorRenderChar || c == OpenVerticalDoorRenderChar;
+
+    private char[] GetDefaultMapCharsNextToPlayer()
+    {
+        var results = new List<char>();
+        for (int col = PlayerPosition.col - 1; col <= PlayerPosition.col + 1; col++)
+        {
+            for (int row = PlayerPosition.row - 1; row <= PlayerPosition.row + 1; row++)
+            {
+                if (PlayerPosition.col == col && PlayerPosition.row == row)
+                    continue;
+                if (Map.DefaultMap[row][col] != ' ')
+                    results.Add(Map.DefaultMap[row][col]);
+            }
+        }
+        return results.ToArray();
+    }
+
+    private void ToggleDoor(int i)
+        => Doors[i] = Doors[i] with { isOpen = !Doors[i].isOpen};
 }

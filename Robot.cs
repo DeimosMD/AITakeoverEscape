@@ -9,7 +9,7 @@ internal class Robot(
     private double TimeSinceLastMove { get; set; }
     internal (int col, int row) Position { get; private set; } = (startCol, startRow);
     
-    internal void UpdateMovement(char?[,] charMap, (int col, int row) playerPosition)
+    internal void UpdateMovement(char[,] charMap, (int col, int row) playerPosition)
     {
         TimeSinceLastMove += Program.DeltaTime;
         if (TimeSinceLastMove > 1 / MovesPerSecond)
@@ -23,7 +23,7 @@ internal class Robot(
      // attempts to path-find to the player in a distance less than or equal to the max pathfinding distance
      // and with two or less direction changes
      // returns true if pathfinding was possible and move was made
-    private bool AttemptPathFindToPlayer(char?[,] charMap, (int col, int row) playerPosition)
+    private bool AttemptPathFindToPlayer(char[,] charMap, (int col, int row) playerPosition)
     {
         if (GetDistanceTo(playerPosition) > MaxPathFindingDistance || Position == playerPosition)
             return false;
@@ -57,7 +57,7 @@ internal class Robot(
 
     // returns shortest allowed distance to player from going in this direction
     // (with two or less direction changes for simplicity)
-    private int CheckForPathUp(char?[,] charMap, (int col, int row) playerPosition)
+    private int CheckForPathUp(char[,] charMap, (int col, int row) playerPosition)
     {
         if (
             playerPosition.col == Position.col && playerPosition.row > Position.row &&
@@ -81,7 +81,7 @@ internal class Robot(
         return bestDistance;
     }
     
-     private int CheckForPathDown(char?[,] charMap, (int col, int row) playerPosition)
+     private int CheckForPathDown(char[,] charMap, (int col, int row) playerPosition)
         {
             if (
                 playerPosition.col == Position.col && playerPosition.row < Position.row &&
@@ -105,7 +105,7 @@ internal class Robot(
             return bestDistance;
         } 
     
-      private int CheckForPathRight(char?[,] charMap, (int col, int row) playerPosition)
+      private int CheckForPathRight(char[,] charMap, (int col, int row) playerPosition)
          {
              if (
                  playerPosition.row == Position.row && playerPosition.col > Position.col &&
@@ -129,7 +129,7 @@ internal class Robot(
              return bestDistance;
          }
       
-     private int CheckForPathLeft(char?[,] charMap, (int col, int row) playerPosition)
+     private int CheckForPathLeft(char[,] charMap, (int col, int row) playerPosition)
         {
             if (
                 playerPosition.row == Position.row && playerPosition.col < Position.col &&
@@ -158,7 +158,7 @@ internal class Robot(
     
     // checks if all space between and including two points are empty on the entity map
     // must be directly vertical or directly horizontal
-    private bool IsPathClear(char?[,] charMap, (int col, int row) posOne, (int col, int row) posTwo)
+    private bool IsPathClear(char[,] charMap, (int col, int row) posOne, (int col, int row) posTwo)
     {
         if (!IsOnMap(posOne) || !IsOnMap(posTwo))
             return false;
@@ -166,7 +166,7 @@ internal class Robot(
         {
             for (var row = Math.Min(posOne.row, posTwo.row); row <= Math.Max(posOne.row, posTwo.row); row++)
             {
-                if (charMap[posOne.col, row] != null)
+                if (GameplayScene.IsEmptyOrPermeable(charMap[posOne.col, row]))
                     return false;
             }
             return true;
@@ -175,7 +175,7 @@ internal class Robot(
         {
             for (var col = Math.Min(posOne.col, posTwo.col); col <= Math.Max(posOne.col, posTwo.col); col++) 
             { 
-                if (charMap[col, posOne.row] != null) 
+                if (GameplayScene.IsEmptyOrPermeable(charMap[col, posOne.row])) 
                     return false;
             }
             return true;
@@ -183,7 +183,7 @@ internal class Robot(
         throw new ArgumentException();
     }
 
-    private void MoveAimlessly(char?[,] charMap)
+    private void MoveAimlessly(char[,] charMap)
     {
         List<(int col, int row)> potentialMoves = [
              (Position.col + 1, Position.row), 
@@ -204,13 +204,13 @@ internal class Robot(
     private List<(int col, int row)> RemoveIllegalMoves(
         List<(int col, int row)> potentialMoves,
         (int col, int row) robotLastPos,
-        char?[,] charMap
+        char[,] charMap
         )
     {
         List<(int col, int row)> remainingMoves = new();
         foreach (var move in potentialMoves)
         {
-            if (IsOnMap(move) && charMap[move.col, move.row] == null && robotLastPos != move)
+            if (IsOnMap(move) && GameplayScene.IsEmptyOrPermeable(charMap[move.col, move.row]) && robotLastPos != move)
                 remainingMoves.Add(move);
         }
         return remainingMoves;
