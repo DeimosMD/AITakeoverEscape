@@ -106,11 +106,39 @@ internal class GameplayScene : IScene
                         },
                         Spacebar
                     );
+                    continue;
                 }
-                continue;
+
+                switch (ci)
+                {
+                    case 3:
+                    {
+                        if (!Doors[ci].isOpen)
+                        {
+                            if (ItemDictionary[Map.CrowBarChar].isPickedUp)
+                                MenuPrompt = new GameplayMenuPrompt(
+                                    "You can try to pry the door open with your crowbar.",
+                                    ["Pry open door"],
+                                    _ =>
+                                    {
+                                        Doors[ci].isOpen = true;
+                                    },
+                                    Spacebar
+                                );
+                            else
+                                MenuPrompt = new GameplayMenuPrompt(
+                                    "This door is locked, but the lock seems fairly weak. " +
+                                    "You can't kick it down because the door opens towards you.",
+                                    [],
+                                    _ => { }
+                                );
+                        }
+                        break;
+                    }
+                }
             }
 
-            if (Map.ItemCharArray.Contains(charNextToPlayer.ch))
+            if (Map.ItemCharArray.Contains(charNextToPlayer.ch) && !ItemDictionary[charNextToPlayer.ch].isPickedUp)
             {
                 MenuPrompt = new GameplayMenuPrompt(
                     Map.GetPromptForItem(charNextToPlayer.ch), 
