@@ -90,66 +90,24 @@ internal class GameplayScene : IScene
     private void UpdateMenuPrompts()
     {
         MenuPrompt = null;
-        foreach (var charNextToPlayer in SortImmediateToEnd(GetDefaultMapCharsNextToPlayer()))
+        foreach (var ch in SortImmediateToEnd(GetDefaultMapCharsNextToPlayer()))
         {
-            int ci = CharToInt(charNextToPlayer.ch);
+            int ci = CharToInt(ch);
             if (ci != -1)
             {
-                if (Map.FirstAccessibleDoors.Contains(ci))
-                {
-                    MenuPrompt = new GameplayMenuPrompt(
-                        "You have the key to this door.",
-                        [Doors[ci].isOpen ? "Close door" : "Open door"],
-                        _ =>
-                        {
-                            ToggleDoor(ci);
-                        },
-                        Spacebar
-                    );
-                    continue;
-                }
-
-                switch (ci)
-                {
-                    case 3:
-                    {
-                        if (!Doors[ci].isOpen)
-                        {
-                            if (ItemDictionary[Map.CrowBarChar].isPickedUp)
-                                MenuPrompt = new GameplayMenuPrompt(
-                                    "You can try to pry the door open with your crowbar.",
-                                    ["Pry open door"],
-                                    _ =>
-                                    {
-                                        Doors[ci].isOpen = true;
-                                    },
-                                    Spacebar
-                                );
-                            else
-                                MenuPrompt = new GameplayMenuPrompt(
-                                    "This door is locked, but the lock seems fairly weak. " +
-                                    "You can't kick it down because the door opens towards you.",
-                                    [],
-                                    _ => { }
-                                );
-                        }
-                        break;
-                    }
-                }
+              UpdateDoorPrompt(ci);
+              continue;
             }
 
-            if (Map.ItemCharArray.Contains(charNextToPlayer.ch) && !ItemDictionary[charNextToPlayer.ch].isPickedUp)
+            if (Map.ItemCharArray.Contains(ch) && !ItemDictionary[ch].isPickedUp)
             {
-                MenuPrompt = new GameplayMenuPrompt(
-                    Map.GetPromptForItem(charNextToPlayer.ch), 
-                    ["Pick it up"],
-                    _ =>
-                    {
-                        ItemDictionary[charNextToPlayer.ch] =
-                            ItemDictionary[charNextToPlayer.ch] with { isPickedUp = true };
-                    },
-                    Spacebar
-                );
+                UpdateItemPrompt(ch);
+                continue;
+            }
+
+            if (Map.SpecialCharArray.Contains(ch))
+            {
+                UpdateSpecialInteractablePrompt(ch);
             }
         }
         
@@ -164,6 +122,70 @@ internal class GameplayScene : IScene
                 Spacebar
             );
         MenuPrompt?.Update();
+    }
+
+    private void UpdateDoorPrompt(int ci)
+    {
+         if (Map.FirstAccessibleDoors.Contains(ci))
+         {
+         
+             MenuPrompt = new GameplayMenuPrompt(
+                 "You have the key to this door.", 
+                 [Doors[ci].isOpen ? "Close door" : "Open door"],
+                 _ =>
+                 { 
+                     ToggleDoor(ci);
+                 }, 
+                 Spacebar
+                 );
+             return;
+         }
+         switch (ci) 
+         { 
+             case 3: 
+             { 
+                 if (!Doors[ci].isOpen) 
+                 { 
+                     if (ItemDictionary[Map.CrowBarChar].isPickedUp) 
+                         MenuPrompt = new GameplayMenuPrompt(
+                             "You can try to pry the door open with your crowbar.", 
+                             ["Pry open door"],
+                             _ =>
+                             { 
+                                 Doors[ci].isOpen = true;
+                             }, 
+                             Spacebar
+                             );
+                     else 
+                         MenuPrompt = new GameplayMenuPrompt(
+                             "This door is locked, but the lock seems fairly weak. " + 
+                             "You can't kick it down because the door opens towards you.", 
+                             [], 
+                             _ => { }
+                             );
+                 } 
+                 break;
+             }
+         }
+    }
+
+    private void UpdateItemPrompt(char ch)
+    {
+        MenuPrompt = new GameplayMenuPrompt(
+            Map.GetPromptForItem(ch), 
+            ["Pick it up"],
+            _ =>
+            { 
+                ItemDictionary[ch] = 
+                    ItemDictionary[ch] with { isPickedUp = true };
+            }, 
+            Spacebar
+        );
+    }
+
+    private void UpdateSpecialInteractablePrompt(char ch)
+    {
+        
     }
     
     private void UpdateRobots(char [,] completeCharMap)
@@ -378,14 +400,14 @@ internal class GameplayScene : IScene
     private void ToggleDoor(int i)
         => Doors[i] = Doors[i] with { isOpen = !Doors[i].isOpen};
 
-    private (bool immediate, char ch)[] SortImmediateToEnd((bool immediate, char ch)[] list)
+    private char[] SortImmediateToEnd((bool immediate, char ch)[] list)
     {
-        var resultPartOne = new List<(bool, char)>();
-        var resultPartTwo = new List<(bool, char)>();
+        var resultPartOne = new List<char>();
+        var resultPartTwo = new List<char>();
         foreach (var item in list)
         {
-            if (item.immediate) resultPartTwo.Add(item);
-            else resultPartOne.Add(item);
+            if (item.immediate) resultPartTwo.Add(item.ch);
+            else resultPartOne.Add(item.ch);
         }
         return resultPartOne.Concat(resultPartTwo).ToArray();
     }
