@@ -48,7 +48,7 @@ internal static class Map
         "         Oe      O 1                 2                  O",
         "          O      4 OO   OOOOOOOOO   OO                  O",
         "           O     O O        O        O                  O",
-        "            O    O O        #        O                 =O",
+        "            O    O O                 O                 =O",
         "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO"
     ];
     
