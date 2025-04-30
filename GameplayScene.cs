@@ -14,6 +14,7 @@ internal class GameplayScene : IScene
     private const int ShipLightsFloodFillRange = 12;
     private const double ShipLightsAbsoluteDistanceRange = 8;
     
+    private static (ConsoleKey, string) Spacebar { get; } = (ConsoleKey.Spacebar, "Spacebar");
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
     private double PlayerTimeSinceLastMove { get; set; }
@@ -21,7 +22,7 @@ internal class GameplayScene : IScene
     private uint FrameNum { get; set; }
     private GameplayMenuPrompt? MenuPrompt { get; set; }
     private bool IsFlashlightActive { get; set; }
-    private List<(char character, (int col, int row) position, bool isPickedUp)> ItemList { get; }
+    private Dictionary<char, ((int col, int row) position, bool isPickedUp)> ItemDictionary { get; }
     private ((int col, int row) position, bool isOpen)[] Doors { get; }
     private List<(char character, (int col, int row) position)> SpecialInteractableList { get; }
 
@@ -29,7 +30,7 @@ internal class GameplayScene : IScene
     {
         CharMap = new char?[Map.Width, Map.Height]; 
         RobotList = new List<Robot>();
-        ItemList = new();
+        ItemDictionary = new();
         Doors = new ((int col, int row) position, bool isOpen)[Map.TotalDoorCount];
         SpecialInteractableList = new();
         PullFromMap();
@@ -66,7 +67,7 @@ internal class GameplayScene : IScene
           }
           else if (Map.ItemCharArray.Contains(c)) 
           { 
-              ItemList.Add((c, pos, false));
+              ItemDictionary.Add(c, (pos, false));
           }
           else if (Map.SpecialCharArray.Contains(c)) 
           { 
@@ -103,11 +104,27 @@ internal class GameplayScene : IScene
                         {
                             ToggleDoor(ci);
                         },
-                        (ConsoleKey.Spacebar, "Spacebar")
+                        Spacebar
                     );
                 }
+                continue;
+            }
+
+            if (Map.ItemCharArray.Contains(charNextToPlayer.ch))
+            {
+                MenuPrompt = new GameplayMenuPrompt(
+                    Map.GetPromptForItem(charNextToPlayer.ch), 
+                    ["Pick it up"],
+                    _ =>
+                    {
+                        ItemDictionary[charNextToPlayer.ch] =
+                            ItemDictionary[charNextToPlayer.ch] with { isPickedUp = true };
+                    },
+                    Spacebar
+                );
             }
         }
+        
         if (FrameNum >= Program.TargetFramesPerSecond * 2 && !IsFlashlightActive)
             MenuPrompt = new GameplayMenuPrompt(
                 "It seems the lights have gone out.",
@@ -116,7 +133,7 @@ internal class GameplayScene : IScene
                 {
                     IsFlashlightActive = true;
                 },
-                (ConsoleKey.Spacebar, "Spacebar")
+                Spacebar
             );
         MenuPrompt?.Update();
     }
@@ -224,9 +241,9 @@ internal class GameplayScene : IScene
             }
         }
         
-        foreach (var item in ItemList)
-            if (!item.isPickedUp)
-                result[item.position.col, item.position.row] = item.character;
+        foreach (var item in ItemDictionary)
+            if (!item.Value.isPickedUp)
+                result[item.Value.position.col, item.Value.position.row] = item.Key;
         foreach (var specialInteractable in SpecialInteractableList)
             result[specialInteractable.position.col, specialInteractable.position.row] 
                 = specialInteractable.character;

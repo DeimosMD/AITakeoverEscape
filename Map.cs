@@ -16,8 +16,8 @@ internal static class Map
     internal const char SinkChar = 'W';
     internal const char EscapePodInitiatorChar = 'Y';
     
-    internal static char[] ItemCharArray { get; } = [CrowBar, ElectricalKitChar, FuelRodsChar, BucketChar];
-    internal const char CrowBar = 'l';
+    internal static char[] ItemCharArray { get; } = [CrowBarChar, ElectricalKitChar, FuelRodsChar, BucketChar];
+    internal const char CrowBarChar = 'l';
     internal const char ElectricalKitChar = 'e';
     internal const char FuelRodsChar = '=';
     internal const char BucketChar = 'U';
@@ -66,7 +66,23 @@ internal static class Map
             case 4: return false;
             case 5: return false;
             case 6: return false;
-            default: throw new ArgumentException($"{id} is not the ID of an actual door");
+            default: throw new ArgumentException($"{id} is not the ID of an actual door. ");
+        }
+    }
+
+    internal static string GetPromptForItem(char ch)
+    {
+        switch (ch)
+        {
+            case CrowBarChar:
+                return "There's a crowbar on a shelf.";
+            case ElectricalKitChar:
+                return "There's an unopened electrical kit here.";
+            case FuelRodsChar:
+                return "There are some fuel rods stored over here.";
+            case BucketChar:
+                return "There's an empty bucket on the floor.";
+            default: throw new ArgumentException($"'{ch}' is not the char of an actual item. ");
         }
     }
 }
