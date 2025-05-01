@@ -13,6 +13,8 @@ internal class GameplayScene : IScene
     private const double FlashlightAbsoluteDistanceRange = 4;
     private const int ShipLightsFloodFillRange = 12;
     private const double ShipLightsAbsoluteDistanceRange = 8;
+    private const int CaptainMinAge = 25;
+    private const int CaptainMaxAge = 45;
     
     private static (ConsoleKey, string) Spacebar { get; } = (ConsoleKey.Spacebar, "Spacebar");
     private char?[,] CharMap { get; }
@@ -22,9 +24,11 @@ internal class GameplayScene : IScene
     private uint FrameNum { get; set; }
     private GameplayMenuPrompt? MenuPrompt { get; set; }
     private bool IsFlashlightActive { get; set; }
+    private bool IsCaptainsLogOpen { get; set; }
     private Dictionary<char, ((int col, int row) position, bool isPickedUp)> ItemDictionary { get; }
     private ((int col, int row) position, bool isOpen)[] Doors { get; }
     private List<(char character, (int col, int row) position)> SpecialInteractableList { get; }
+    private int CaptainAge { get; } = CaptainMinAge + Random.Shared.Next(CaptainMaxAge - CaptainMinAge + 1);
 
     internal GameplayScene()
     {
@@ -185,7 +189,49 @@ internal class GameplayScene : IScene
 
     private void UpdateSpecialInteractablePrompt(char ch)
     {
-        
+        switch (ch)
+        {
+            case Map.CaptainsBodyChar:
+            {
+                MenuPrompt = new GameplayMenuPrompt(
+                    "That's the captain's body! Yeah... he's dead.",
+                    [],
+                    _ => { }
+                );
+                break;
+            }
+            case Map.CaptainsLogChar:
+            {
+                if (IsCaptainsLogOpen)
+                {
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "           The following is the most recent page of the captain's log." +
+                        "\n\n\n" +
+                        "   26 April, 2050" +
+                        "\n\n" +
+                        "       The robots have been acting strange ever since I gave them that software update,\n" +
+                        "   but that won't distract me from the fact that it's my birthday. " +
+                        $"I'm {CaptainAge} years old now!",
+                        [],
+                        _ => { }
+                    );
+                }
+                else
+                {
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "This appears to be the captain's log.",
+                        ["Open it"],
+                        _ =>
+                        {
+                            IsCaptainsLogOpen = true;
+                        },
+                        Spacebar
+                    );
+                }
+
+                break;
+            }
+        }
     }
     
     private void UpdateRobots(char [,] completeCharMap)
