@@ -16,7 +16,8 @@ public static class Program
     {
         if (args.Length != 0)
             Console.WriteLine($"All given {args.Length} argument(s) are unnecessary.");
-
+        Console.CursorVisible = false;
+        
         while (!PressedKeys.Contains(ExitKey))
         {
             var stopWatch = new Stopwatch();
