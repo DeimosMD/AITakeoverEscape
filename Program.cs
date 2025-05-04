@@ -6,6 +6,7 @@ public static class Program
 {
     private const ConsoleKey ExitKey = ConsoleKey.Q; // when pressed, exits program
     internal const double TargetFramesPerSecond = 30;
+    internal const string Tab = "     ";
     
     internal static string Frame { get; set; } = string.Empty; // text to be outputted for current frame
     internal static IScene Scene { get; set; } = new IntroScene();

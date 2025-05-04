@@ -16,7 +16,6 @@ internal class GameplayScene : IScene
     private const int CaptainMinAge = 25;
     private const int CaptainMaxAge = 45;
     
-    private static (ConsoleKey, string) Spacebar { get; } = (ConsoleKey.Spacebar, "Spacebar");
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
     private double PlayerTimeSinceLastMove { get; set; }
@@ -29,6 +28,7 @@ internal class GameplayScene : IScene
     private ((int col, int row) position, bool isOpen)[] Doors { get; }
     private List<(char character, (int col, int row) position)> SpecialInteractableList { get; }
     private int CaptainAge { get; } = CaptainMinAge + Random.Shared.Next(CaptainMaxAge - CaptainMinAge + 1);
+    private static int?[] CurrentPasscodeEntered { get; set; } = new int?[4];
 
     internal GameplayScene()
     {
@@ -118,12 +118,12 @@ internal class GameplayScene : IScene
         if (FrameNum >= Program.TargetFramesPerSecond * 2 && !IsFlashlightActive)
             MenuPrompt = new GameplayMenuPrompt(
                 "It seems the lights have gone out.",
-                ["Activate flashlight"],
-                _ =>
+                x =>
                 {
-                    IsFlashlightActive = true;
+                    if (x == -1)
+                        IsFlashlightActive = true;
                 },
-                Spacebar
+                "Activate flashlight"
             );
         MenuPrompt?.Update();
     }
@@ -135,12 +135,12 @@ internal class GameplayScene : IScene
          
              MenuPrompt = new GameplayMenuPrompt(
                  "You have the key to this door.", 
-                 [Doors[ci].isOpen ? "Close door" : "Open door"],
-                 _ =>
-                 { 
-                     ToggleDoor(ci);
+                 x =>
+                 {
+                     if (x == -1)
+                         ToggleDoor(ci);
                  }, 
-                 Spacebar
+                 Doors[ci].isOpen ? "Close door" : "Open door"
                  );
              return;
          }
@@ -153,21 +153,63 @@ internal class GameplayScene : IScene
                      if (ItemDictionary[Map.CrowBarChar].isPickedUp) 
                          MenuPrompt = new GameplayMenuPrompt(
                              "You can try to pry the door open with your crowbar.", 
-                             ["Pry open door"],
-                             _ =>
+                             x =>
                              { 
-                                 Doors[ci].isOpen = true;
+                                 if (x == -1)
+                                    Doors[ci].isOpen = true;
                              }, 
-                             Spacebar
-                             );
+                             "Pry open door"
+                         );
                      else 
                          MenuPrompt = new GameplayMenuPrompt(
                              "This door is locked, but the lock seems fairly weak. " + 
                              "You can't kick it down because the door opens towards you.", 
-                             [], 
                              _ => { }
                              );
                  } 
+                 break;
+             }
+             case 4:
+             {
+                 if (Doors[ci].isOpen)
+                 {
+                     MenuPrompt = new GameplayMenuPrompt(
+                         "This door can be closed, but to open it again the code would be required.",
+                         x =>
+                         {
+                             if (x == -1)
+                                 Doors[ci].isOpen = false;
+                         },
+                         "Close door"
+                     );
+                 }
+                 else
+                 {
+                     MenuPrompt = new GameplayMenuPrompt(
+                         "This door is locked electronically; the code was set by the captain himself." +
+                         "\n\n\n" +
+                         $"{Program.Tab+Program.Tab}ENTER PASSCODE: {GetEnteredPasscodeAsString()}",
+                         x =>
+                         {
+                             if (x == -1)
+                             {
+                                 if (IsEnteredPasscodeCorrect())
+                                     Doors[ci].isOpen = true;
+                                 CurrentPasscodeEntered = new int?[CurrentPasscodeEntered.Length];
+                             }
+                             else if (x == 10)
+                             {
+                                 RemoveFromEnteredPasscode();
+                             }
+                             else
+                             {
+                                 AddNumberToEnteredPasscode(x);
+                             }
+                         },
+                         "Authenticate entered passcode"
+                     );
+                 }
+
                  break;
              }
          }
@@ -177,13 +219,12 @@ internal class GameplayScene : IScene
     {
         MenuPrompt = new GameplayMenuPrompt(
             Map.GetPromptForItem(ch), 
-            ["Pick it up"],
-            _ =>
+            x =>
             { 
-                ItemDictionary[ch] = 
-                    ItemDictionary[ch] with { isPickedUp = true };
+                if (x == -1)
+                    ItemDictionary[ch] = ItemDictionary[ch] with { isPickedUp = true };
             }, 
-            Spacebar
+            "Pick it up"
         );
     }
 
@@ -195,7 +236,6 @@ internal class GameplayScene : IScene
             {
                 MenuPrompt = new GameplayMenuPrompt(
                     "That's the captain's body! Yeah... he's dead.",
-                    [],
                     _ => { }
                 );
                 break;
@@ -205,14 +245,13 @@ internal class GameplayScene : IScene
                 if (IsCaptainsLogOpen)
                 {
                     MenuPrompt = new GameplayMenuPrompt(
-                        "           The following is the most recent page of the captain's log." +
+                        "           The following is the most recent entry from the captain's log." +
                         "\n\n\n" +
                         "   26 April, 2050" +
                         "\n\n" +
                         "       The robots have been acting strange ever since I gave them that software update,\n" +
                         "   but that won't distract me from the fact that it's my birthday. " +
                         $"I'm {CaptainAge} years old now!",
-                        [],
                         _ => { }
                     );
                 }
@@ -220,12 +259,12 @@ internal class GameplayScene : IScene
                 {
                     MenuPrompt = new GameplayMenuPrompt(
                         "This appears to be the captain's log.",
-                        ["Open it"],
-                        _ =>
+                        x =>
                         {
-                            IsCaptainsLogOpen = true;
+                            if (x == -1)
+                                IsCaptainsLogOpen = true;
                         },
-                        Spacebar
+                        "Open it"
                     );
                 }
 
@@ -456,5 +495,53 @@ internal class GameplayScene : IScene
             else resultPartOne.Add(item.ch);
         }
         return resultPartOne.Concat(resultPartTwo).ToArray();
+    }
+
+    private int GetCaptainBirthYear()
+        => 2050 - CaptainAge;
+    
+    private int?[] GetCorrectPassCode()
+        => [2,0,(GetCaptainBirthYear()-2000)/10,(GetCaptainBirthYear()-2000)%10];
+
+    private string GetEnteredPasscodeAsString()
+    {
+        string s = string.Empty;
+        foreach (var i in CurrentPasscodeEntered)
+            s += i is null ? "_" : i.ToString();
+        return s;
+    }
+
+    private void AddNumberToEnteredPasscode(int number)
+    {
+        for (int i = 0; i < CurrentPasscodeEntered.Length; i++)
+        {
+            if (CurrentPasscodeEntered[i] == null)
+            {
+                CurrentPasscodeEntered[i] = number;
+                return;
+            }
+        }
+    }
+
+    private bool IsEnteredPasscodeCorrect()
+    {
+        var correct = GetCorrectPassCode();
+        for (var i = 0; i < correct.Length; i++)
+        {
+            if (correct[i] != CurrentPasscodeEntered[i])
+                return false;
+        }
+
+        return true;
+    }
+
+    private void RemoveFromEnteredPasscode()
+    {
+        for (int i = CurrentPasscodeEntered.Length - 1; i >= 0; i--)
+            if (CurrentPasscodeEntered[i] != null)
+            {
+                CurrentPasscodeEntered[i] = null;
+                return;
+            }
     }
 }

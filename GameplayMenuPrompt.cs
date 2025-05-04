@@ -2,27 +2,24 @@ namespace AITakeOverEscape;
 
 internal class GameplayMenuPrompt 
 {
-    private string CompletePrompt { get; set; } = String.Empty;
+    private string CompletePrompt { get; } 
     private Action<int> OnOptionSelected { get; }
-    private (ConsoleKey? key, string? text) AlternateFirstOptionKey { get; }
-    private int OptionCount { get; }
+    private (ConsoleKey key, string text) SingleOptionSelectKey => (ConsoleKey.Spacebar, "Spacebar");
     
     internal GameplayMenuPrompt (
-        string promptStart, string[] optionArray, Action<int> onOptionSelection
+        string prompt, Action<int> onOptionSelection
     ) {
         OnOptionSelected = onOptionSelection;
-        SetCompletePrompt(promptStart, optionArray);
-        OptionCount = optionArray.Length;
+        CompletePrompt = $"\n\n{Program.Tab}{prompt}";
     }
 
     internal GameplayMenuPrompt (
-        string prompt, string[] optionArray, Action<int> onOptionSelection, 
-        (ConsoleKey key, string text) alternateFirstOptionKey
+        string prompt, Action<int> onOptionSelection, string singleOptionText 
     ) {
         OnOptionSelected = onOptionSelection;
-        AlternateFirstOptionKey = alternateFirstOptionKey;
-        SetCompletePrompt(prompt, optionArray);
-        OptionCount = optionArray.Length;
+        CompletePrompt = $"\n\n{Program.Tab}{prompt}\n\n\n" +
+                         $"{Program.Tab+Program.Tab}{SingleOptionSelectKey.text}" +
+                         $"{Program.Tab}--{Program.Tab}{singleOptionText}";
     }
     
     internal void Update()
@@ -30,16 +27,14 @@ internal class GameplayMenuPrompt
         Program.Frame += CompletePrompt;
         foreach (ConsoleKey key in Program.PressedKeys)
         {
-            int num = GetKeyAsNumerical(key);
-            if ((num > 0 && num <= OptionCount && AlternateFirstOptionKey.key == null) 
-                || (num >= 0 && num < OptionCount && AlternateFirstOptionKey.key != null))
-                OnOptionSelected.Invoke(num);
+            if (GetKeyAsNumerical(key) != -1 || key == SingleOptionSelectKey.key)
+                OnOptionSelected.Invoke(GetKeyAsNumerical(key));
         }
     }
 
     private int GetKeyAsNumerical(ConsoleKey key)
     {
-        if (key == (AlternateFirstOptionKey.key ?? ConsoleKey.D0)) return 0;
+        if (key == ConsoleKey.D0) return 0;
         if (key == ConsoleKey.D1) return 1;
         if (key == ConsoleKey.D2) return 2;
         if (key == ConsoleKey.D3) return 3;
@@ -49,26 +44,7 @@ internal class GameplayMenuPrompt
         if (key == ConsoleKey.D7) return 7;
         if (key == ConsoleKey.D8) return 8;
         if (key == ConsoleKey.D9) return 9;
+        if (key == ConsoleKey.Backspace) return 10;
         return -1;
-    }
-
-    private void SetCompletePrompt(string promptStart, string[] optionArray)
-    {
-        CompletePrompt += "\n\n   " + promptStart + "\n\n\n";
-        for (int i = 0; i < optionArray.Length; i++)
-        {
-            CompletePrompt += "     ";
-            if (AlternateFirstOptionKey.key != null)
-            {
-                if (i == 0)
-                    CompletePrompt += AlternateFirstOptionKey.text;
-                else
-                    CompletePrompt += i;
-            }
-            else
-                CompletePrompt += i + 1;
-            CompletePrompt += "     --     " + optionArray[i] + "\n";
-        }
-        CompletePrompt += "\n";
     }
 }
