@@ -13,6 +13,7 @@ internal class GameplayMenuPrompt
         CompletePrompt = $"\n\n{Program.Tab}{prompt}";
     }
 
+    // presence of an option prompt has no technical effect on the invoking of the passed function
     internal GameplayMenuPrompt (
         string prompt, Action<int> onOptionSelection, string singleOptionText 
     ) {
@@ -28,7 +29,7 @@ internal class GameplayMenuPrompt
         foreach (ConsoleKey key in Program.PressedKeys)
         {
             if (GetKeyAsNumerical(key) != -1 || key == SingleOptionSelectKey.key)
-                OnOptionSelected.Invoke(GetKeyAsNumerical(key));
+                OnOptionSelected.Invoke(GetKeyAsNumerical(key)); // passes -1 if is single-option key
         }
     }
 
