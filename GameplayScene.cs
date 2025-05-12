@@ -17,6 +17,8 @@ internal class GameplayScene : IScene
     private const int CaptainMinAge = 25;
     private const int CaptainMaxAge = 45;
     private const double BucketAttackRange = 2.5;
+    private const double CrowBarAttackRange = 1;
+    private const double SmashedRobotInteractRange = 1.5;
     
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
@@ -34,6 +36,7 @@ internal class GameplayScene : IScene
     private bool IsBucketFilled { get; set; }
     private bool HasBucketBeenUsed { get; set; }
     private (int col, int row)? SplashedRobotPosition { get; set; }
+    private (int col, int row)? SmashedRobotPosition { get; set; }
 
     internal GameplayScene()
     {
@@ -146,6 +149,41 @@ internal class GameplayScene : IScene
                     }
                 },
                 "Throw your bucket"
+            );
+        }
+
+        if (ItemDictionary[Map.CrowBarChar].isPickedUp
+            && GetClosestRobotToPlayer()?.DistanceTo(PlayerPosition) <= CrowBarAttackRange)
+        {
+            MenuPrompt = new GameplayMenuPrompt(
+                "You can attack the robot with your crowbar.",
+                x =>
+                {
+                    if (x == -1)
+                    {
+                        SmashedRobotPosition = GetClosestRobotToPlayer()!.Position;
+                        RobotList.Remove(GetClosestRobotToPlayer()!);
+                        ItemDictionary[Map.CrowBarChar] = ItemDictionary[Map.CrowBarChar] with { isPickedUp = false };
+                    }
+                },
+                "Throw your crowbar"
+            );
+        }
+
+        if (
+            SmashedRobotPosition != null
+            && Math.Sqrt(Square(PlayerPosition.col - SmashedRobotPosition.Value.col)
+                         + Square(PlayerPosition.row - SmashedRobotPosition.Value.row)) <= SmashedRobotInteractRange
+        ) {
+            MenuPrompt = new GameplayMenuPrompt(
+                "You may attempt to pull out the crowbar for future use.", 
+                x =>
+                {
+                    if (x == -1)
+                        Program.Scene = new DeathScene(
+                            "You just got electrocuted from touching the crowbar while it's in the robot.");
+                },
+                "Take it out"
             );
         }
         
@@ -349,8 +387,11 @@ internal class GameplayScene : IScene
         {
            robot.UpdateMovement(completeCharMap, PlayerPosition);
            if (robot.Position == PlayerPosition)
-               Program.Scene = new DeathScene("You just got killed by a robot.");
+               Program.Scene = new DeathScene("You just got killed by a robot!");
         }
+
+        if (PlayerPosition == SplashedRobotPosition)
+            Program.Scene = new DeathScene("You just died by electrocution!");
     }
 
     private void AddVisibleCharMapToFrame(char[,] completeCharMap)
@@ -467,7 +508,8 @@ internal class GameplayScene : IScene
 
         if (SplashedRobotPosition != null)
             result[SplashedRobotPosition.Value.col, SplashedRobotPosition.Value.row] = DeadRobotRenderChar;
-        
+        if (SmashedRobotPosition != null)
+            result[SmashedRobotPosition.Value.col, SmashedRobotPosition.Value.row] = DeadRobotRenderChar;
         result[PlayerPosition.col, PlayerPosition.row] = PlayerRenderChar; 
         foreach (var robot in RobotList) 
             result[robot.Position.col, robot.Position.row] = RobotRenderChar;
