@@ -8,7 +8,7 @@ internal class IntroScene : IScene
         "The robots have free will and, to your understanding, mean no harm.\n" +
         "\n\n" +
         $"{Program.Tab+Program.Tab}Press any key to continue...\n" +
-        "\n\n\n\n*At any time, including now, press q to quit*\n\n";
+        "\n\n\n\n*At any time, including now, press [Q] to quit or [R] to reset*\n\n";
     
     void IScene.Update()
     {

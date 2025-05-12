@@ -5,6 +5,7 @@ namespace AITakeOverEscape;
 public static class Program
 {
     private const ConsoleKey ExitKey = ConsoleKey.Q; // when pressed, exits program
+    private const ConsoleKey ResetKey = ConsoleKey.R; // when pressed, restarts to intro scene
     internal const double TargetFramesPerSecond = 30;
     internal const string Tab = "     ";
     
@@ -29,6 +30,8 @@ public static class Program
             DeltaTime = sleepTimeSeconds + stopWatch.Elapsed.TotalSeconds;
             Frame = string.Empty;
             Frame += $"FPS: {Math.Round(1 / DeltaTime)}\n\n";
+            if (PressedKeys.Contains(ResetKey))
+                Scene = new IntroScene();
         }
     }
 
