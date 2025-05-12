@@ -347,7 +347,9 @@ internal class GameplayScene : IScene
     {
         foreach (var robot in RobotList)
         {
-           robot.UpdateMovement(completeCharMap, PlayerPosition); 
+           robot.UpdateMovement(completeCharMap, PlayerPosition);
+           if (robot.Position == PlayerPosition)
+               Program.Scene = new DeathScene("You just got killed by a robot.");
         }
     }
 
