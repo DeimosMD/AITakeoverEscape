@@ -40,7 +40,7 @@ internal static class Map
         "   OO            O                                      O",
         "  O              O OOOOO OOOOOOOOOOOOO OOOOOO         OOO",
         " O               O Ol      O        EO O                O",
-        "OK               5 OOOOOOOOO         O O                O",
+        "OK               5 OOOOOOOOO &       O O                O",
         " O               O O       O         O O                O", 
         "  O              O O  @    O    t    O O                O", 
         "   OO            O O       O         O O                O", 
