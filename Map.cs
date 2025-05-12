@@ -4,7 +4,7 @@ namespace AITakeOverEscape;
 internal static class Map
 {
     internal const char PlayerChar = '@';
-    internal const char RobotChar = '#';
+    internal const char RobotChar = '&';
 
     internal static char[] SpecialCharArray { get; } = [
         FlightTerminalChar, TrashDisposalChar, CaptainsLogChar, CaptainsBodyChar, SinkChar, EscapePodInitiatorChar
@@ -31,7 +31,7 @@ internal static class Map
     // all else that is interactable is either an item or a special interactable
     internal static string[] DefaultMap =>
     [
-        "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO_____________O",
+        "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
         "            O    O O                     UO             O",
         "           O     O O                O     O             O",
         "          O      6 O                O     O             O",
@@ -47,7 +47,7 @@ internal static class Map
         "     OOOOOOOOOOOOO OOOO0OOOOOOOOOO3OOO                  O",
         "         Oe      O 1                 2                  O",
         "          O      4 OO   OOOOOOOOO   OO                  O",
-        "           O     O O        O        O                  O",
+        "           O     O O        O        O                & O",
         "            O    O O                 O                 =O",
         "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO"
     ];

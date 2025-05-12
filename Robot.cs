@@ -220,4 +220,7 @@ internal class Robot(
         => pos is { col: >= 0, row: >= 0 } 
            && pos.col < Map.Width 
            && pos.row < Map.Height;
+    
+    internal double DistanceTo((int col, int row) pos)
+        => Math.Sqrt(Math.Pow(pos.col - Position.col, 2) + Math.Pow(pos.row - Position.row, 2));
 }

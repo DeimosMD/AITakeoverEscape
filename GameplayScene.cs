@@ -3,7 +3,8 @@ namespace AITakeOverEscape;
 internal class GameplayScene : IScene
 {
     private const char PlayerRenderChar = '@';
-    private const char RobotRenderChar = '#';
+    private const char RobotRenderChar = '&';
+    private const char DeadRobotRenderChar = 'X';
     private const char ClosedVerticalDoorRenderChar = '-'; // vertical as in a door where one travels vertically
     private const char OpenVerticalDoorRenderChar = '/';
     private const char ClosedHorizontalDoorRenderChar = '|';
@@ -15,6 +16,7 @@ internal class GameplayScene : IScene
     private const double ShipLightsAbsoluteDistanceRange = 8;
     private const int CaptainMinAge = 25;
     private const int CaptainMaxAge = 45;
+    private const double BucketAttackRange = 2.5;
     
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
@@ -29,6 +31,9 @@ internal class GameplayScene : IScene
     private List<(char character, (int col, int row) position)> SpecialInteractableList { get; }
     private int CaptainAge { get; } = CaptainMinAge + Random.Shared.Next(CaptainMaxAge - CaptainMinAge + 1);
     private static int?[] CurrentPasscodeEntered { get; set; } = new int?[4];
+    private bool IsBucketFilled { get; set; }
+    private bool HasBucketBeenUsed { get; set; }
+    private (int col, int row)? SplashedRobotPosition { get; set; }
 
     internal GameplayScene()
     {
@@ -125,6 +130,25 @@ internal class GameplayScene : IScene
                 },
                 "Activate flashlight"
             );
+
+        if (IsBucketFilled && GetClosestRobotToPlayer()?.DistanceTo(PlayerPosition) <= BucketAttackRange)
+        {
+            MenuPrompt = new GameplayMenuPrompt(
+                "You can splash water on the robot.",
+                x =>
+                {
+                    if (x == -1)
+                    {
+                        SplashedRobotPosition = GetClosestRobotToPlayer()!.Position;
+                        RobotList.Remove(GetClosestRobotToPlayer()!);
+                        IsBucketFilled = false;
+                        HasBucketBeenUsed = true;
+                    }
+                },
+                "Throw your bucket"
+            );
+        }
+        
         MenuPrompt?.Update();
     }
 
@@ -270,6 +294,52 @@ internal class GameplayScene : IScene
 
                 break;
             }
+            case Map.SinkChar:
+            {
+                if (ItemDictionary[Map.BucketChar].isPickedUp)
+                {
+                    if (!IsBucketFilled && HasBucketBeenUsed)
+                    {
+                        MenuPrompt = new GameplayMenuPrompt(
+                            "It seems the water isn't working now.",
+                            _ => { }
+                        );
+                        break;
+                    }
+
+                    if (IsBucketFilled && !HasBucketBeenUsed)
+                    {
+                        MenuPrompt = new GameplayMenuPrompt(
+                            "You're bucket is filled.",
+                            _ => { }
+                        );
+                        break;
+                    }
+                        
+                    // the bucket will never be filled while its also been used
+                    // so this is only reached when the bucket isn't filled nor used
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "It's the sink. You can fill up your bucket with water now.",
+                        x =>
+                        {
+                            if (x == -1)
+                            {
+                                IsBucketFilled = true;
+                            }
+                        },
+                        "Fill it up"
+                    );
+                }
+                else
+                {
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "It's the sink that produces infamously salty water;" +
+                        " you don't seem to have a use for it at the moment.",
+                        _ => { }
+                    );
+                }
+                break;
+            }
         }
     }
     
@@ -392,6 +462,10 @@ internal class GameplayScene : IScene
                 result[door.position.col, door.position.row]
                     = Map.IsDoorVertical(i) ? ClosedVerticalDoorRenderChar : ClosedHorizontalDoorRenderChar;
         }
+
+        if (SplashedRobotPosition != null)
+            result[SplashedRobotPosition.Value.col, SplashedRobotPosition.Value.row] = DeadRobotRenderChar;
+        
         result[PlayerPosition.col, PlayerPosition.row] = PlayerRenderChar; 
         foreach (var robot in RobotList) 
             result[robot.Position.col, robot.Position.row] = RobotRenderChar;
@@ -463,7 +537,7 @@ internal class GameplayScene : IScene
     }
 
     internal static bool IsEmptyOrPermeable(char c)
-        => c == ' ' || c == RobotRenderChar || c == PlayerRenderChar
+        => c == ' ' || c == RobotRenderChar || c == PlayerRenderChar || c == DeadRobotRenderChar
                     || c == OpenHorizontalDoorRenderChar || c == OpenVerticalDoorRenderChar;
 
     private (bool immediate, char ch)[] GetDefaultMapCharsNextToPlayer()
@@ -543,5 +617,24 @@ internal class GameplayScene : IScene
                 CurrentPasscodeEntered[i] = null;
                 return;
             }
+    }
+
+    private Robot? GetClosestRobotToPlayer()
+    {
+        if (RobotList.Count == 0)
+            return null;
+        
+        Robot closestRobot = RobotList[0];
+        double minDistance = double.MaxValue;
+
+        foreach (var robot in RobotList)
+        {
+            if (robot.DistanceTo(PlayerPosition) < minDistance)
+            {
+                minDistance = robot.DistanceTo(PlayerPosition);
+                closestRobot = robot;
+            }
+        }
+        return closestRobot;
     }
 }
