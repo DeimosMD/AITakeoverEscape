@@ -21,17 +21,22 @@ internal static class Map
     internal const char ElectricalKitChar = 'e';
     internal const char FuelRodsChar = '=';
     internal const char BucketChar = 'U';
-
+    
+    internal static (int row, int colOne, int colTwo) TrashDisposalOuterDoorPosition { get; } = (0, 43, 55);
+    internal static (int row, int colOne, int colTwo) TrashDisposalInnerDoorPosition { get; } = (5, 45, 53);
+    
     internal static int[] FirstAccessibleDoors { get; } = [0, 1, 2];
     internal const int TotalDoorCount = 7;
-    
+
+    internal static (int col, int row) TrashDisposalPos { get; } = (43,5);
+
     // all rows of map must be same length
     // player position must be set or will cause runtime exception
     // numbers represent doors
     // all else that is interactable is either an item or a special interactable
     internal static string[] DefaultMap =>
     [
-        "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO",
+        "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO             O",
         "            O    O O                     UO             O",
         "           O     O O                O     O             O",
         "          O      6 O                O     O             O",
@@ -85,4 +90,10 @@ internal static class Map
             default: throw new ArgumentException($"'{ch}' is not the char of an actual item. ");
         }
     }
+    
+    internal static bool IsOnMap((int col, int row) pos)
+        => pos is { col: >= 0, row: >= 0 } 
+           && pos.col < Width 
+           && pos.row < Height; 
+    
 }

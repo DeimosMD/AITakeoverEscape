@@ -9,6 +9,7 @@ internal class GameplayScene : IScene
     private const char OpenVerticalDoorRenderChar = '/';
     private const char ClosedHorizontalDoorRenderChar = '|';
     private const char OpenHorizontalDoorRenderChar = '_';
+    private const char TrashDisposalDoorRenderChar = 'W';
     private const double PlayerMovesPerSecond = 5;
     private const int FlashlightFloodFillRange = 6;
     private const double FlashlightAbsoluteDistanceRange = 4;
@@ -19,6 +20,7 @@ internal class GameplayScene : IScene
     private const double BucketAttackRange = 2.5;
     private const double CrowBarAttackRange = 1;
     private const double SmashedRobotInteractRange = 1.5;
+    private const double TrashDisposalSequenceMovesPerSecond = 5;
     
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
@@ -37,6 +39,10 @@ internal class GameplayScene : IScene
     private bool HasBucketBeenUsed { get; set; }
     private (int col, int row)? SplashedRobotPosition { get; set; }
     private (int col, int row)? SmashedRobotPosition { get; set; }
+    private bool IsTrashDisposalOpened { get; set; }
+    private bool IsTrashDisposalOpenedOnPlayer { get; set; }
+    private double TimeSinceLastTrashDisposalUnitSequenceMove { get; set; }
+    
 
     internal GameplayScene()
     {
@@ -93,10 +99,15 @@ internal class GameplayScene : IScene
     {
         FrameNum++;
         char[,] completeCharMap = GetCompleteCharMap();
-        UpdateRobots(completeCharMap);
-        UpdatePlayerMovement(completeCharMap);
         AddVisibleCharMapToFrame(completeCharMap);
-        UpdateMenuPrompts();
+        if (IsTrashDisposalOpenedOnPlayer)
+            UpdateDeathByTrashDisposalUnitSequence();
+        else
+        {
+            UpdateRobots(completeCharMap);
+            UpdatePlayerMovement(completeCharMap);
+            UpdateMenuPrompts();
+        }
     }
 
     private void UpdateMenuPrompts()
@@ -181,7 +192,7 @@ internal class GameplayScene : IScene
                 {
                     if (x == -1)
                         Program.Scene = new DeathScene(
-                            "You just got electrocuted from touching the crowbar while it's in the robot.");
+                            "You've been electrocuted to death!");
                 },
                 "Take it out"
             );
@@ -378,6 +389,29 @@ internal class GameplayScene : IScene
                 }
                 break;
             }
+            case Map.TrashDisposalChar:
+            {
+                if (PlayerPosition.row > Map.TrashDisposalPos.row)
+                {
+                    if (IsTrashDisposalOpened)
+                        MenuPrompt = new GameplayMenuPrompt(
+                            "The waste disposal unit has been emptied. It's encountering errors and cannot open now.",
+                            _ => { }
+                        );
+                    else
+                        MenuPrompt = new GameplayMenuPrompt(
+                            "This is the terminal for the waste disposal unit.",
+                            x =>
+                            {
+                                if (x == -1)
+                                    IsTrashDisposalOpened = true;
+                            },
+                            "Empty trash disposal unit"
+                        );
+                }
+
+                break;
+            }
         }
     }
     
@@ -386,8 +420,17 @@ internal class GameplayScene : IScene
         foreach (var robot in RobotList)
         {
            robot.UpdateMovement(completeCharMap, PlayerPosition);
-           if (robot.Position == PlayerPosition)
+           if (robot.Position == PlayerPosition) 
                Program.Scene = new DeathScene("You just got killed by a robot!");
+           if (
+               Math.Sqrt(Square(robot.Position.col - Map.TrashDisposalPos.col)
+                         + Square(robot.Position.row - Map.TrashDisposalPos.row)) < 1.5
+               && PlayerPosition.row <= Map.TrashDisposalPos.row && PlayerPosition.col >= Map.TrashDisposalPos.col
+           )
+           {
+               IsTrashDisposalOpened = true;
+               IsTrashDisposalOpenedOnPlayer = true;
+           }
         }
 
         if (PlayerPosition == SplashedRobotPosition)
@@ -451,13 +494,18 @@ internal class GameplayScene : IScene
         return results;
     }
 
-    private List<(int col, int row)> GetSurroundingPoints((int col, int row) position) 
-        => [
-            position with { row = position.row + 1},
-            position with { row = position.row - 1},
-            position with { col = position.col + 1},
-            position with { col = position.col - 1}
-        ];
+    private List<(int col, int row)> GetSurroundingPoints((int col, int row) position)
+    {
+        var results = new List<(int col, int row)>
+        {
+            position with { row = position.row + 1 },
+            position with { row = position.row - 1 },
+            position with { col = position.col + 1 },
+            position with { col = position.col - 1 }
+        };
+        results.RemoveAll(pos => !Map.IsOnMap(pos));
+        return results;
+    }
 
     private List<(int col, int row)> FilterForInFlashLightAbsoluteRange(
         List<(int col, int row)> positionList, double range
@@ -513,6 +561,11 @@ internal class GameplayScene : IScene
         result[PlayerPosition.col, PlayerPosition.row] = PlayerRenderChar; 
         foreach (var robot in RobotList) 
             result[robot.Position.col, robot.Position.row] = RobotRenderChar;
+        var disposalDoorToRender = 
+            IsTrashDisposalOpened ? Map.TrashDisposalInnerDoorPosition : Map.TrashDisposalOuterDoorPosition;
+        for (int col = disposalDoorToRender.colOne; 
+             col <= disposalDoorToRender.colTwo; col++)
+            result[col, disposalDoorToRender.row] = TrashDisposalDoorRenderChar;
         return result;
     }
 
@@ -680,5 +733,21 @@ internal class GameplayScene : IScene
             }
         }
         return closestRobot;
+    }
+
+    // assumes IsTrashDisposalOpenedOnPlayer to be true
+    private void UpdateDeathByTrashDisposalUnitSequence()
+    {
+        if (TimeSinceLastTrashDisposalUnitSequenceMove > 1 / TrashDisposalSequenceMovesPerSecond)
+        {
+            TimeSinceLastTrashDisposalUnitSequenceMove = 0;
+            foreach (Robot robot in RobotList)
+                robot.Position = robot.Position with { row = robot.Position.row - 1 };
+            PlayerPosition = PlayerPosition with { row = PlayerPosition.row - 1 };
+            RobotList.RemoveAll(robot => !Map.IsOnMap(robot.Position));
+            if (!Map.IsOnMap(PlayerPosition))
+                Program.Scene = new DeathScene("You've been consumed by the vacuum of space!");
+        }
+        TimeSinceLastTrashDisposalUnitSequenceMove += Program.DeltaTime;
     }
 }

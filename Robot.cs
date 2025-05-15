@@ -7,7 +7,7 @@ internal class Robot(
     private const int MaxPathFindingDistance = 7;
     private (int col, int row) MostRecentPosition { get; set; } = (startCol, startRow);
     private double TimeSinceLastMove { get; set; }
-    internal (int col, int row) Position { get; private set; } = (startCol, startRow);
+    internal (int col, int row) Position { get; set; } = (startCol, startRow);
     
     internal void UpdateMovement(char[,] charMap, (int col, int row) playerPosition)
     {
@@ -37,7 +37,7 @@ internal class Robot(
         int min = int.MaxValue;
         for (int i = 0; i < potentialMovesWithDistances.Length; i++)
         {
-            if (!IsOnMap(potentialMovesWithDistances[i].position)) 
+            if (!Map.IsOnMap(potentialMovesWithDistances[i].position)) 
                 potentialMovesWithDistances[i].distance = int.MaxValue;
             else if (potentialMovesWithDistances[i].distance < min)
                 min = potentialMovesWithDistances[i].distance;
@@ -160,7 +160,7 @@ internal class Robot(
     // must be directly vertical or directly horizontal
     private bool IsPathClear(char[,] charMap, (int col, int row) posOne, (int col, int row) posTwo)
     {
-        if (!IsOnMap(posOne) || !IsOnMap(posTwo))
+        if (!Map.IsOnMap(posOne) || !Map.IsOnMap(posTwo))
             return false;
         if (posOne.col == posTwo.col)
         {
@@ -210,16 +210,11 @@ internal class Robot(
         List<(int col, int row)> remainingMoves = new();
         foreach (var move in potentialMoves)
         {
-            if (IsOnMap(move) && GameplayScene.IsEmptyOrPermeable(charMap[move.col, move.row]) && robotLastPos != move)
+            if (Map.IsOnMap(move) && GameplayScene.IsEmptyOrPermeable(charMap[move.col, move.row]) && robotLastPos != move)
                 remainingMoves.Add(move);
         }
         return remainingMoves;
     }
-    
-    private bool IsOnMap((int col, int row) pos)
-        => pos is { col: >= 0, row: >= 0 } 
-           && pos.col < Map.Width 
-           && pos.row < Map.Height;
     
     internal double DistanceTo((int col, int row) pos)
         => Math.Sqrt(Math.Pow(pos.col - Position.col, 2) + Math.Pow(pos.row - Position.row, 2));
