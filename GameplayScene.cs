@@ -389,6 +389,20 @@ internal class GameplayScene : IScene
 
                  break;
              }
+             case 6:
+             {
+                 if (Doors[ci].isOpen)
+                     MenuPrompt = new GameplayMenuPrompt(
+                         "This door can't be closed manually.",
+                         _ => { }
+                     );
+                 else
+                     MenuPrompt = new GameplayMenuPrompt(
+                         "This door leads to the escape pod dock and can't be opened manually.",
+                         _ => { }
+                     );
+                 break;
+             }
          }
     }
 
@@ -512,6 +526,55 @@ internal class GameplayScene : IScene
                             },
                             "Empty trash disposal unit"
                         );
+                }
+
+                break;
+            }
+            case Map.FlightTerminalChar:
+            {
+                if (Doors[6].isOpen)
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "The flight terminal shows that the escape pods have been enabled.",
+                        _ => { }
+                    );
+                else
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "This is the flight terminal. It's used for a variety of purposes, " +
+                        "including prepping the escape pods.",
+                        x =>
+                        {
+                            if (x == -1)
+                            {
+                                Doors[6].isOpen = true;
+                            }
+                        },
+                        "Enable escape pods"
+                    );
+                break;
+            }
+            case Map.EscapePodInitiatorChar:
+            {
+                if (ItemDictionary[Map.FuelRodsChar].isPickedUp)
+                {
+                    MenuPrompt = new GameplayMenuPrompt(
+                            "You have everything necessary to launch an escape pod.",
+                            x =>
+                            {
+                                if (x == -1)
+                                {
+                                    Program.Scene = new WinningScene();
+                                }
+                            },
+                            "Enter and launch an escape pod"
+                    );
+                }
+                else
+                {
+                    MenuPrompt = new GameplayMenuPrompt(
+                        "This terminal launches the escape pods, but to use it you must first retrieve the fuel rods " +
+                        "from the cargo bay.",
+                        _ => { }
+                    );
                 }
 
                 break;
