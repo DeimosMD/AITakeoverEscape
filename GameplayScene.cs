@@ -20,7 +20,10 @@ internal class GameplayScene : IScene
     private const double BucketAttackRange = 2.5;
     private const double CrowBarAttackRange = 1;
     private const double SmashedRobotInteractRange = 1.5;
-    private const double TrashDisposalSequenceMovesPerSecond = 5;
+    private const int TrashDisposalSequenceMovesPerSecond = 5;
+    private const int DoorRepairPuzzleBitsPerPart = 6;
+    private const int DoorRepairPuzzleMinSolutionValue = 10;
+    private const int DoorRepairPuzzlePartCount = 3;
     
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
@@ -42,8 +45,13 @@ internal class GameplayScene : IScene
     private bool IsTrashDisposalOpened { get; set; }
     private bool IsTrashDisposalOpenedOnPlayer { get; set; }
     private double TimeSinceLastTrashDisposalUnitSequenceMove { get; set; }
-    
+    private bool IsFlightDeckDoorRepaired { get; set; }
 
+    private int[] RepairDoorPuzzleSolution { get; } = new int[DoorRepairPuzzlePartCount]
+        .Select(_ => DoorRepairPuzzleMinSolutionValue + Random.Shared.Next(
+            (int) Math.Pow(2, DoorRepairPuzzleBitsPerPart) - DoorRepairPuzzleMinSolutionValue)).ToArray();
+    private int?[,] CurrentDoorRepairInput { get; set; } = new int?[DoorRepairPuzzlePartCount, 2];
+    
     internal GameplayScene()
     {
         CharMap = new char?[Map.Width, Map.Height]; 
@@ -285,6 +293,88 @@ internal class GameplayScene : IScene
 
                  break;
              }
+             case 5:
+             {
+                 if (ItemDictionary[Map.ElectricalKitChar].isPickedUp)
+                     if (IsFlightDeckDoorRepaired)
+                     {
+                         if (Doors[ci].isOpen)
+                         {
+                             MenuPrompt = new GameplayMenuPrompt(
+                                 "You can close this door.",
+                                 x =>
+                                 {
+                                     if (x == -1)
+                                     {
+                                         Doors[ci].isOpen = false;
+                                     }
+                                 },
+                                 "Close it"
+                             );
+                         }
+                         else
+                         {
+                             MenuPrompt = new GameplayMenuPrompt(
+                                 "You can open this door.",
+                                 x =>
+                                 {
+                                     if (x == -1)
+                                     {
+                                         Doors[ci].isOpen = true;
+                                     }
+                                 },
+                                 "Open it"
+                             );
+                         }
+                     }
+                     else // door is assumed to be closed in this case
+                     {
+                         MenuPrompt = new GameplayMenuPrompt(
+                             "You can try to repair this door. The wires have labels in the form of bar codes " +
+                             "indicating what GPIO ports they should connect with to power the unlocking mechanism. " +
+                             "There are many possible ports you could solder them to, so you must use the bar codes " +
+                             "to figure out where they go. At any point, if the configuration is correct, " +
+                             "then the door will open." +
+                             $"\n\n{GetWireCodesAsStringForPrompt()}",
+                             x =>
+                             {
+                                 switch (x)
+                                 {
+                                     case -1:
+                                     {
+                                         CurrentDoorRepairInput = new int?[DoorRepairPuzzleBitsPerPart, 2];
+                                         break;
+                                     }
+                                     case 10:
+                                     {
+                                         RemoveDoorRepairInput();
+                                         break;
+                                     }
+                                     default:
+                                     {
+                                         AddDoorRepairInput(x);
+                                         break;
+                                     }
+                                 }
+
+                                 if (IsEnteredWireConfigCorrect())
+                                 {
+                                     IsFlightDeckDoorRepaired = true;
+                                     Doors[ci].isOpen = true;
+                                 }
+                             },
+                             "Reset configuration"
+                         );
+                     }
+                 else
+                     MenuPrompt = new GameplayMenuPrompt(
+                        "This door can't be opened. " +
+                        "The wiring for the unlocking mechanism seems to have been undone.",
+                        _ => { }
+                     );
+
+                 break;
+             }
          }
     }
 
@@ -359,7 +449,7 @@ internal class GameplayScene : IScene
                     if (IsBucketFilled && !HasBucketBeenUsed)
                     {
                         MenuPrompt = new GameplayMenuPrompt(
-                            "You're bucket is filled.",
+                            "Your bucket is already filled.",
                             _ => { }
                         );
                         break;
@@ -520,6 +610,7 @@ internal class GameplayScene : IScene
                 results.Add(position);
             }
         }
+        
         return results;
     }
 
@@ -650,6 +741,7 @@ internal class GameplayScene : IScene
                     results.Add((row == PlayerPosition.row || col == PlayerPosition.col, Map.DefaultMap[row][col]));
             }
         }
+        
         return results.ToArray();
     }
 
@@ -665,6 +757,7 @@ internal class GameplayScene : IScene
             if (item.immediate) resultPartTwo.Add(item.ch);
             else resultPartOne.Add(item.ch);
         }
+
         return resultPartOne.Concat(resultPartTwo).ToArray();
     }
 
@@ -732,13 +825,14 @@ internal class GameplayScene : IScene
                 closestRobot = robot;
             }
         }
+
         return closestRobot;
     }
 
     // assumes IsTrashDisposalOpenedOnPlayer to be true
     private void UpdateDeathByTrashDisposalUnitSequence()
     {
-        if (TimeSinceLastTrashDisposalUnitSequenceMove > 1 / TrashDisposalSequenceMovesPerSecond)
+        if (TimeSinceLastTrashDisposalUnitSequenceMove > 1 / (double) TrashDisposalSequenceMovesPerSecond)
         {
             TimeSinceLastTrashDisposalUnitSequenceMove = 0;
             foreach (Robot robot in RobotList)
@@ -749,5 +843,81 @@ internal class GameplayScene : IScene
                 Program.Scene = new DeathScene("You've been consumed by the vacuum of space!");
         }
         TimeSinceLastTrashDisposalUnitSequenceMove += Program.DeltaTime;
+    }
+    
+    private string ConvertIntToBinaryBarCode(int @int)
+    {
+        string result = string.Empty;
+        for (int i = DoorRepairPuzzleBitsPerPart - 1; i >= 0; i--)
+        {
+            int bitValue = (int) Math.Pow(2, i);
+            if (@int >= bitValue)
+            {
+                result += '|';
+                @int -= bitValue;
+            }
+            else
+            {
+                result += ' ';
+            }
+        }
+        
+        return result;
+    }
+
+    private string GetWireCodesAsStringForPrompt()
+    {
+        string result = string.Empty;
+        for (var i = 0; i < RepairDoorPuzzleSolution.Length; i++)
+        {
+            result += $"{Program.Tab}[{ConvertIntToBinaryBarCode(RepairDoorPuzzleSolution[i])}]{Program.Tab}->"
+                      + Program.Tab + GetNullableIntToString(CurrentDoorRepairInput[i, 0]) 
+                      + GetNullableIntToString(CurrentDoorRepairInput[i, 1]) + "\n";
+        }
+
+        return result;
+    }
+    
+    private string GetNullableIntToString(int? x)
+        => x.HasValue ? x.Value.ToString() : "_";
+
+    private bool IsEnteredWireConfigCorrect()
+    {
+        // last element being non-null means whole array is non-null because elements are inputted in order
+        if (CurrentDoorRepairInput[CurrentDoorRepairInput.GetLength(0) - 1, 1] == null) 
+            return false;
+        for (int i = 0; i < CurrentDoorRepairInput.GetLength(0); i++)
+        {
+            if (RepairDoorPuzzleSolution[i] != GetDoorPuzzleInputDigitsAsInt(i))
+                return false;
+        }
+
+        return true;
+    }
+    
+    // array elements assumed to be non-null
+    private int GetDoorPuzzleInputDigitsAsInt(int index)
+        => (CurrentDoorRepairInput[index, 0] ?? 0) * 10 + CurrentDoorRepairInput[index, 1] ?? 0;
+
+    private void AddDoorRepairInput(int x)
+    {
+         for (int i = 0; i < CurrentDoorRepairInput.GetLength(0); i++)
+             foreach (int j in new[] {0, 1})
+                 if (CurrentDoorRepairInput[i, j] == null)
+                 {
+                     CurrentDoorRepairInput[i, j] = x;
+                     return;
+                 }
+    }
+
+    private void RemoveDoorRepairInput()
+    {
+        for (int i = CurrentDoorRepairInput.GetLength(0) - 1; i >= 0; i--)
+            foreach (int j in new[] {1, 0})
+                if (CurrentDoorRepairInput[i, j] != null)
+                {
+                    CurrentDoorRepairInput[i, j] = null;
+                    return;
+                }
     }
 }
