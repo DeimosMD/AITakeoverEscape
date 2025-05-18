@@ -115,11 +115,11 @@ internal class GameplayScene : IScene
         {
             UpdateRobots(completeCharMap);
             UpdatePlayerMovement(completeCharMap);
-            UpdateMenuPrompts();
+            UpdateMenuPrompts(completeCharMap);
         }
     }
 
-    private void UpdateMenuPrompts()
+    private void UpdateMenuPrompts(char[,] completeCharMap)
     {
         MenuPrompt = null;
         
@@ -173,7 +173,8 @@ internal class GameplayScene : IScene
                 "Activate flashlight"
             );
 
-        if (IsBucketFilled && GetClosestRobotToPlayer()?.DistanceTo(PlayerPosition) <= BucketAttackRange)
+        if (IsBucketFilled && GetClosestRobotToPlayer()?.DistanceTo(PlayerPosition) <= BucketAttackRange
+            && IsPositionValidForSplash(GetClosestRobotToPlayer()?.Position ?? (0, 0), completeCharMap))
         {
             MenuPrompt = new GameplayMenuPrompt(
                 "You can splash water on the robot.",
@@ -925,5 +926,29 @@ internal class GameplayScene : IScene
                     CurrentDoorRepairInput[i, j] = null;
                     return;
                 }
+    }
+
+    // ensures that there isn't a solid between the player and the robot being attacked
+    private bool IsPositionValidForSplash((int col, int row) position, char[,] completeCharMap)
+    {
+        if (Math.Abs(PlayerPosition.col - position.col) == 2)
+        {
+            if (PlayerPosition.col > position.col)
+            {
+                return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col - 1, PlayerPosition.row]);
+            }
+            return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col + 1, PlayerPosition.row]);
+        }
+        
+        if (Math.Abs(PlayerPosition.row - position.row) == 2)
+        {
+            if (PlayerPosition.row > position.row)
+            {
+               return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col, PlayerPosition.row - 1]);
+            }
+            return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col, PlayerPosition.row + 1]);
+        }
+
+        return true;
     }
 }
