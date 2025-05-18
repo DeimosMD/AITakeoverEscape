@@ -24,6 +24,7 @@ internal class GameplayScene : IScene
     private const int DoorRepairPuzzleBitsPerPart = 6;
     private const int DoorRepairPuzzleMinSolutionValue = 10;
     private const int DoorRepairPuzzlePartCount = 3;
+    private const double PasscodeAttemptCooldown = 1.5;
     
     private char?[,] CharMap { get; }
     private (int col, int row) PlayerPosition { get; set; }
@@ -47,6 +48,7 @@ internal class GameplayScene : IScene
     private double TimeSinceLastTrashDisposalUnitSequenceMove { get; set; }
     private bool IsFlightDeckDoorRepaired { get; set; }
     private bool HasCrowBarAttackedBeenUsed { get; set; }
+    private double TimeSinceLastPasscodeAttempt { get; set; }
 
     private int[] RepairDoorPuzzleSolution { get; } = new int[DoorRepairPuzzlePartCount]
         .Select(_ => DoorRepairPuzzleMinSolutionValue + Random.Shared.Next(
@@ -122,6 +124,8 @@ internal class GameplayScene : IScene
     private void UpdateMenuPrompts(char[,] completeCharMap)
     {
         MenuPrompt = null;
+        
+        TimeSinceLastPasscodeAttempt += Program.DeltaTime;
         
         if (
             SmashedRobotPosition != null
@@ -273,13 +277,19 @@ internal class GameplayScene : IScene
                      MenuPrompt = new GameplayMenuPrompt(
                          "This door is locked electronically; the code was set by the captain himself." +
                          "\n\n\n" +
-                         $"{Program.Tab+Program.Tab}ENTER PASSCODE: {GetEnteredPasscodeAsString()}",
+                         (PasscodeAttemptCooldown < TimeSinceLastPasscodeAttempt ?
+                             $"{Program.Tab+Program.Tab}ENTER PASSCODE: {GetEnteredPasscodeAsString()}"
+                            : $"{Program.Tab+Program.Tab}WRONG, TRY AGAIN."),
                          x =>
                          {
+                             if (PasscodeAttemptCooldown > TimeSinceLastPasscodeAttempt)
+                                 return;
                              if (x == -1)
                              {
                                  if (IsEnteredPasscodeCorrect())
                                      Doors[ci].isOpen = true;
+                                 else
+                                     TimeSinceLastPasscodeAttempt = 0;
                                  CurrentPasscodeEntered = new int?[CurrentPasscodeEntered.Length];
                              }
                              else if (x == 10)
