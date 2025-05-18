@@ -46,6 +46,7 @@ internal class GameplayScene : IScene
     private bool IsTrashDisposalOpenedOnPlayer { get; set; }
     private double TimeSinceLastTrashDisposalUnitSequenceMove { get; set; }
     private bool IsFlightDeckDoorRepaired { get; set; }
+    private bool HasCrowBarAttackedBeenUsed { get; set; }
 
     private int[] RepairDoorPuzzleSolution { get; } = new int[DoorRepairPuzzlePartCount]
         .Select(_ => DoorRepairPuzzleMinSolutionValue + Random.Shared.Next(
@@ -171,7 +172,7 @@ internal class GameplayScene : IScene
             );
         }
 
-        if (ItemDictionary[Map.CrowBarChar].isPickedUp
+        if (ItemDictionary[Map.CrowBarChar].isPickedUp && !HasCrowBarAttackedBeenUsed
             && GetClosestRobotToPlayer()?.DistanceTo(PlayerPosition) <= CrowBarAttackRange)
         {
             MenuPrompt = new GameplayMenuPrompt(
@@ -182,7 +183,7 @@ internal class GameplayScene : IScene
                     {
                         SmashedRobotPosition = GetClosestRobotToPlayer()!.Position;
                         RobotList.Remove(GetClosestRobotToPlayer()!);
-                        ItemDictionary[Map.CrowBarChar] = ItemDictionary[Map.CrowBarChar] with { isPickedUp = false };
+                        HasCrowBarAttackedBeenUsed = true;
                     }
                 },
                 "Throw your crowbar"
