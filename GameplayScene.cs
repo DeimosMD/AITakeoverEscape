@@ -122,13 +122,32 @@ internal class GameplayScene : IScene
     private void UpdateMenuPrompts()
     {
         MenuPrompt = null;
+        
+        if (
+            SmashedRobotPosition != null
+            && Math.Sqrt(Square(PlayerPosition.col - SmashedRobotPosition.Value.col)
+                         + Square(PlayerPosition.row - SmashedRobotPosition.Value.row)) <= SmashedRobotInteractRange
+        ) {
+            MenuPrompt = new GameplayMenuPrompt(
+                "You may attempt to pull out the crowbar for future use.", 
+                x =>
+                {
+                    if (x == -1)
+                        Program.Scene = new DeathScene(
+                            "You've been electrocuted to death!");
+                },
+                "Take it out"
+            );
+        }
+        
         foreach (var ch in SortImmediateToEnd(GetDefaultMapCharsNextToPlayer()))
         {
             int ci = CharToInt(ch);
             if (ci != -1)
             {
-              UpdateDoorPrompt(ci);
-              continue;
+                if (Doors[ci].position != SplashedRobotPosition)
+                    UpdateDoorPrompt(ci); 
+                continue;
             }
 
             if (Map.ItemCharArray.Contains(ch) && !ItemDictionary[ch].isPickedUp)
@@ -190,23 +209,6 @@ internal class GameplayScene : IScene
             );
         }
 
-        if (
-            SmashedRobotPosition != null
-            && Math.Sqrt(Square(PlayerPosition.col - SmashedRobotPosition.Value.col)
-                         + Square(PlayerPosition.row - SmashedRobotPosition.Value.row)) <= SmashedRobotInteractRange
-        ) {
-            MenuPrompt = new GameplayMenuPrompt(
-                "You may attempt to pull out the crowbar for future use.", 
-                x =>
-                {
-                    if (x == -1)
-                        Program.Scene = new DeathScene(
-                            "You've been electrocuted to death!");
-                },
-                "Take it out"
-            );
-        }
-        
         MenuPrompt?.Update();
     }
 
@@ -646,10 +648,13 @@ internal class GameplayScene : IScene
                     = Map.IsDoorVertical(i) ? ClosedVerticalDoorRenderChar : ClosedHorizontalDoorRenderChar;
         }
 
+        if (
+            SmashedRobotPosition != null && 
+            IsEmptyOrPermeable(result[SmashedRobotPosition.Value.col, SmashedRobotPosition.Value.row])
+        )
+            result[SmashedRobotPosition.Value.col, SmashedRobotPosition.Value.row] = DeadRobotRenderChar;
         if (SplashedRobotPosition != null)
             result[SplashedRobotPosition.Value.col, SplashedRobotPosition.Value.row] = DeadRobotRenderChar;
-        if (SmashedRobotPosition != null)
-            result[SmashedRobotPosition.Value.col, SmashedRobotPosition.Value.row] = DeadRobotRenderChar;
         result[PlayerPosition.col, PlayerPosition.row] = PlayerRenderChar; 
         foreach (var robot in RobotList) 
             result[robot.Position.col, robot.Position.row] = RobotRenderChar;
