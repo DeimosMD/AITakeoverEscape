@@ -28,7 +28,7 @@ internal static class Map
     internal static int[] FirstAccessibleDoors { get; } = [0, 1, 2];
     internal const int TotalDoorCount = 7;
 
-    internal static (int col, int row) TrashDisposalPos { get; } = (43,5);
+    internal static (int col, int row) TrashDisposalPos { get; } = (43, 5);
 
     // all rows of map must be same length
     // player position must be set or will cause runtime exception
@@ -37,23 +37,23 @@ internal static class Map
     internal static string[] DefaultMap =>
     [
         "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO             O",
-        "            O    O O                     UO             O",
-        "           O     O O                O     O             O",
-        "          O      6 O                O     O             O",
-        "         OY      O O                     WO             O",
+        "            OOOOOOOO&                    UO             O",
+        "           O    GO O   [H]  [#]     O B   O             O",
+        "          O< Y   6 O    H           O B  GO             O",
+        "         OOO    GO O   [H]  [#]          WO             O",
         "     OOOOOOOOOOOOO OO              OOOOOOOO%O         OOO",
-        "   OO            O                                      O",
-        "  O              O OOOOO OOOOOOOOOOOOO OOOOOO         OOO",
-        " O               O Ol      O        EO O                O",
-        "OK               5 OOOOOOOOO &       O O                O",
-        " O               O O       O         O O                O", 
-        "  O              O O  @    O    t    O O                O", 
-        "   OO            O O       O         O O                O", 
-        "     OOOOOOOOOOOOO OOOO0OOOOOOOOOO3OOO                  O",
-        "         Oe      O 1                 2                  O",
-        "          O      4 OO   OOOOOOOOO   OO                  O",
-        "           O     O O        O        O                & O",
-        "            O    O O                 O                 =O",
+        "   OOOOOOOOOOOOOOO                                      O",
+        "  OOOO        MRDO OOOOO OOOOOOOOOOOOO OOOOOO       # OOO",
+        " OOOO  <]  <]    O Ol      OF     [ EO O&           #   O",
+        "OOOOK    &       5 OOOOOOOOO &      LO O # ##  ###      O",
+        " OOOO  <]  <]    O OH]    LO         O O ####  ###  # # O", 
+        "  OOOO        MRDO O  @    O    t    O O  #     ##  # # O", 
+        "   OOOOOOOOOOOOOOO OF      OD        O O    ##    ##  ##O", 
+        "     OOOOOOOOOOOOO OOOO0OOOOOOOOOO3OOO     ###   ###  ##O",
+        "         Oe     FO 1                 2     ###   ### ## O",
+        "          O##    4 OO   OOOOOOOOO   OO         #        O",
+        "           O#  ##O O       FO        O  #### ###   ##  &O",
+        "            OOOOOOOOF H]      [H]  [HO #####   #  ####&=O",
         "             OOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO"
     ];
     
