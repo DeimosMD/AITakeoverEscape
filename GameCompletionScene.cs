@@ -6,7 +6,7 @@ internal class GameCompletionScene : IScene
     private const int AnimationHeight = 3;
     private const double EscapePodMovesPerSecond = 10.0;
 
-    private (int min, int max) PlayerColOffsetBounds => (0, 2); // inclusive bounds of   
+    private (int min, int max) PlayerColOffsetBounds => (0, 2); // inclusive bounds of PlayerColOffset
     private int WinningTextColumn => (Console.WindowWidth - WinningText.Length) / 2;
     private double SceneTime { get; set; }
     private (int col, int row) EscapePodPosition => ((int) (SceneTime * EscapePodMovesPerSecond) - 10, 1);
