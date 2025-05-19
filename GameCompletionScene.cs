@@ -1,6 +1,6 @@
 namespace AITakeOverEscape;
 
-internal class WinningScene : IScene
+internal class GameCompletionScene : IScene
 {
     private const string WinningText = "You have completed the game!";
     private const int AnimationHeight = 3;

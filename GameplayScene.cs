@@ -562,7 +562,7 @@ internal class GameplayScene : IScene
                             {
                                 if (x == -1)
                                 {
-                                    Program.Scene = new WinningScene();
+                                    Program.Scene = new GameCompletionScene();
                                 }
                             },
                             "Enter and launch an escape pod"
