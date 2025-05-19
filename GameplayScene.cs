@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace AITakeOverEscape;
 
 internal class GameplayScene : IScene
@@ -49,6 +51,7 @@ internal class GameplayScene : IScene
     private bool IsFlightDeckDoorRepaired { get; set; }
     private bool HasCrowBarAttackedBeenUsed { get; set; }
     private double TimeSinceLastPasscodeAttempt { get; set; }
+    private Stopwatch Timer { get; } = Stopwatch.StartNew();
 
     private int[] RepairDoorPuzzleSolution { get; } = new int[DoorRepairPuzzlePartCount]
         .Select(_ => DoorRepairPuzzleMinSolutionValue + Random.Shared.Next(
@@ -562,7 +565,7 @@ internal class GameplayScene : IScene
                             {
                                 if (x == -1)
                                 {
-                                    Program.Scene = new GameCompletionScene();
+                                    Program.Scene = new GameCompletionScene(Timer.Elapsed.TotalSeconds);
                                 }
                             },
                             "Enter and launch an escape pod"

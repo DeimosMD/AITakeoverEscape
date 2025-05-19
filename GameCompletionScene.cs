@@ -1,23 +1,27 @@
 namespace AITakeOverEscape;
 
-internal class GameCompletionScene : IScene
-{
+internal class GameCompletionScene (
+    double gameCompletionTime
+) : IScene {
     private const string WinningText = "You have completed the game!";
     private const int AnimationHeight = 3;
     private const double EscapePodMovesPerSecond = 10.0;
 
     private (int min, int max) PlayerColOffsetBounds => (0, 2); // inclusive bounds of PlayerColOffset
-    private int WinningTextColumn => (Console.WindowWidth - WinningText.Length) / 2;
+    private int WinningTextColumn => (Console.WindowWidth - CompleteTextHeader.Length) / 2;
     private double SceneTime { get; set; }
     private (int col, int row) EscapePodPosition => ((int) (SceneTime * EscapePodMovesPerSecond) - 10, 1);
     private int PlayerColOffset { get; set; } = 1;
+    private double RoundedCompleteTime => Math.Ceiling(gameCompletionTime * 100.0) / 100.0;
+    private string CompleteTextHeader => WinningText + Program.Tab + Program.Tab + "Completion time (in run): " + 
+                                         RoundedCompleteTime + "s";
     
     void IScene.Update()
     {
         SceneTime += Program.DeltaTime;
         UpdatePlayerMovement();
-        AddSpacesToFrameForWinningTextColumn();
-        Program.Frame += WinningText + "\n\n\n\n\n\n";
+        AddSpacesToFrameForCorrectTextColumn();
+        Program.Frame += CompleteTextHeader + "\n\n\n\n\n\n";
         AddAnimationToFrame();
     }
 
@@ -69,7 +73,7 @@ internal class GameCompletionScene : IScene
             (2, 1, '/')
         ];
 
-    private void AddSpacesToFrameForWinningTextColumn()
+    private void AddSpacesToFrameForCorrectTextColumn()
     {
         for (int i = 0; i < WinningTextColumn; i++)
         {
