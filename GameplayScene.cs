@@ -239,7 +239,7 @@ internal class GameplayScene : IScene
              { 
                  if (!Doors[ci].isOpen) 
                  { 
-                     if (ItemDictionary[Map.CrowBarChar].isPickedUp) 
+                     if (ItemDictionary[Map.CrowBarChar].isPickedUp && !HasCrowBarAttackedBeenUsed) 
                          MenuPrompt = new GameplayMenuPrompt(
                              "You can try to pry the door open with your crowbar.", 
                              x =>
