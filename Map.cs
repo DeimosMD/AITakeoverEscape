@@ -86,7 +86,7 @@ internal static class Map
             case ElectricalKitChar:
                 return "There's an unopened electrical kit here.";
             case FuelRodsChar:
-                return "There are some fuel rods stored over here.";
+                return "There's a case of fuel rods stored over here.";
             case BucketChar:
                 return "There's an empty bucket on the floor.";
             default: throw new ArgumentException($"'{ch}' is not the char of an actual item. ");
