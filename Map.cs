@@ -27,7 +27,8 @@ internal static class Map
     
     internal static int[] FirstAccessibleDoors { get; } = [0, 1, 2];
     internal const int TotalDoorCount = 7;
-
+    internal static char[] TransparentCharArray { get; } = 
+        ['F', 'E', 'L', 'H', '[', ']', '<', 'Y', 'B', 'W', 'U', 'G', 'K'];
     internal static (int col, int row) TrashDisposalPos { get; } = (43, 5);
 
     // all rows of map must be same length

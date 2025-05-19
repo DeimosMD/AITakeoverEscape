@@ -635,7 +635,7 @@ internal class GameplayScene : IScene
 
     private List<(int col, int row)> GetAllInFloodFillRange(int reiterations, char[,] charMap)
     {
-        List<(int col, int row)> results = []; // all non-permeable points visible as result of flashlight
+        List<(int col, int row)> results = []; // all non-transparent points visible as result of flashlight
         List<(int col, int row)> allEmptyFoundList = []; 
         List<(int col, int row)> recentEmptyFoundList = [PlayerPosition]; // uses player position as starting point
         for (int i = 0; i < reiterations; i++)
@@ -645,13 +645,13 @@ internal class GameplayScene : IScene
             {
                 foreach (var surroundingPoint in GetSurroundingPoints(emptyFoundPoint))
                 {
-                    if (IsEmptyOrPermeable(charMap[surroundingPoint.col, surroundingPoint.row])
+                    if (IsTransparent(charMap[surroundingPoint.col, surroundingPoint.row])
                         && !allEmptyFoundList.Contains(surroundingPoint))
                     {
                         currentEmptyFoundList.Add(surroundingPoint);
                         allEmptyFoundList.Add(emptyFoundPoint);
                     }
-                    else if (!results.Contains(surroundingPoint))
+                    if (!results.Contains(surroundingPoint))
                         results.Add(surroundingPoint);
                 }
             }
@@ -803,11 +803,16 @@ internal class GameplayScene : IScene
             default: return -1;
         }
     }
-
+    
+    // returns true chars that can be moved through
     internal static bool IsEmptyOrPermeable(char c)
         => c == ' ' || c == RobotRenderChar || c == PlayerRenderChar || c == DeadRobotRenderChar
                     || c == OpenHorizontalDoorRenderChar || c == OpenVerticalDoorRenderChar;
 
+    // returns true chars that can be seen through
+    private static bool IsTransparent(char c)
+        => Map.TransparentCharArray.Contains(c) || IsEmptyOrPermeable(c);
+    
     private (bool immediate, char ch)[] GetDefaultMapCharsNextToPlayer()
     {
         var results = new List<(bool, char)>();
@@ -1001,25 +1006,25 @@ internal class GameplayScene : IScene
                 }
     }
 
-    // ensures that there isn't a solid between the player and the robot being attacked
+    // ensures that there isn't something non-transparent between the player and the robot being attacked
     private bool IsPositionValidForSplash((int col, int row) position, char[,] completeCharMap)
     {
         if (Math.Abs(PlayerPosition.col - position.col) == 2)
         {
             if (PlayerPosition.col > position.col)
             {
-                return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col - 1, PlayerPosition.row]);
+                return IsTransparent(completeCharMap[PlayerPosition.col - 1, PlayerPosition.row]);
             }
-            return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col + 1, PlayerPosition.row]);
+            return IsTransparent(completeCharMap[PlayerPosition.col + 1, PlayerPosition.row]);
         }
         
         if (Math.Abs(PlayerPosition.row - position.row) == 2)
         {
             if (PlayerPosition.row > position.row)
             {
-               return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col, PlayerPosition.row - 1]);
+               return IsTransparent(completeCharMap[PlayerPosition.col, PlayerPosition.row - 1]);
             }
-            return IsEmptyOrPermeable(completeCharMap[PlayerPosition.col, PlayerPosition.row + 1]);
+            return IsTransparent(completeCharMap[PlayerPosition.col, PlayerPosition.row + 1]);
         }
 
         return true;
