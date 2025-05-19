@@ -25,8 +25,8 @@ internal static class Map
     internal static (int row, int colOne, int colTwo) TrashDisposalOuterDoorPosition { get; } = (0, 43, 55);
     internal static (int row, int colOne, int colTwo) TrashDisposalInnerDoorPosition { get; } = (5, 45, 53);
     
-    internal static int[] FirstAccessibleDoors { get; } = [0, 1, 2];
-    internal const int TotalDoorCount = 7;
+    internal static int[] FirstAccessibleDoors { get; } = [0, 1, 2, 7];
+    internal const int TotalDoorCount = 8;
     internal static char[] TransparentCharArray { get; } = 
         ['F', 'E', 'L', 'H', '[', ']', '<', 'Y', 'B', 'W', 'U', 'G', 'K'];
     internal static (int col, int row) TrashDisposalPos { get; } = (43, 5);
@@ -44,7 +44,7 @@ internal static class Map
         "         OOO    GO O   [H]  [#]          WO             O",
         "     OOOOOOOOOOOOO OO              OOOOOOOO%O         OOO",
         "   OOOOOOOOOOOOOOO                                      O",
-        "  OOOO        MRDO OOOOO OOOOOOOOOOOOO OOOOOO       # OOO",
+        "  OOOO        MRDO OOOOO7OOOOOOOOOOOOO OOOOOO       # OOO",
         " OOOO  <]  <]    O Ol      OF     [ EO O&           #   O",
         "OOOOK    &       5 OOOOOOOOO &      LO O # ##  ###      O",
         " OOOO  <]  <]    O OH]    LO         O O ####  ###  # # O", 
@@ -72,6 +72,7 @@ internal static class Map
             case 4: return false;
             case 5: return false;
             case 6: return false;
+            case 7: return true;
             default: throw new ArgumentException($"{id} is not the ID of an actual door. ");
         }
     }
