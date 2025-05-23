@@ -8,6 +8,7 @@ internal class Robot(
     private (int col, int row) MostRecentPosition { get; set; } = (startCol, startRow);
     private double TimeSinceLastMove { get; set; }
     internal (int col, int row) Position { get; set; } = (startCol, startRow);
+    private int MoveCount { get; set; } // used to choose move
     
     internal void UpdateMovement(char[,] charMap, (int col, int row) playerPosition)
     {
@@ -15,6 +16,7 @@ internal class Robot(
         if (TimeSinceLastMove > 1 / MovesPerSecond)
         {
             TimeSinceLastMove = 0;
+            MoveCount++;
             if (!AttemptPathFindToPlayer(charMap, playerPosition))
                 MoveAimlessly(charMap);
         }
@@ -51,7 +53,7 @@ internal class Robot(
             if (potentialMovesWithDistances[i].distance == min)
                 bestMoves.Add(potentialMovesWithDistances[i].position);
         }
-        Position = bestMoves[Random.Shared.Next(bestMoves.Count)];
+        Position = bestMoves[MoveCount % bestMoves.Count];
         return true;
     }
 
@@ -185,17 +187,20 @@ internal class Robot(
 
     private void MoveAimlessly(char[,] charMap)
     {
+        if (TryMoveStraight(charMap))
+            return;
+        
         List<(int col, int row)> potentialMoves = [
              (Position.col + 1, Position.row), 
              (Position.col - 1, Position.row), 
              (Position.col, Position.row + 1), 
              (Position.col, Position.row - 1)
          ];
-        potentialMoves = RemoveIllegalMoves(potentialMoves, MostRecentPosition, charMap);
+        potentialMoves = RemoveIllegalMoves(potentialMoves, charMap);
         MostRecentPosition = Position;
         if (potentialMoves.Count == 0)
             return;
-        Position = potentialMoves[Random.Shared.Next(potentialMoves.Count)];
+        Position = potentialMoves[MoveCount % potentialMoves.Count];
     }
     
     // any move onto an entity on the entity map or onto the space occupied before the most recent move is illegal.
@@ -203,19 +208,56 @@ internal class Robot(
     // there is no way that any of the potential moves in the current move call are equal to the robot's recent position
     private List<(int col, int row)> RemoveIllegalMoves(
         List<(int col, int row)> potentialMoves,
-        (int col, int row) robotLastPos,
         char[,] charMap
         )
     {
         List<(int col, int row)> remainingMoves = new();
         foreach (var move in potentialMoves)
         {
-            if (Map.IsOnMap(move) && GameplayScene.IsEmptyOrPermeable(charMap[move.col, move.row]) && robotLastPos != move)
+            if (IsLegalMove(charMap, move))
                 remainingMoves.Add(move);
         }
         return remainingMoves;
     }
+
+    private bool IsLegalMove(char[,] charMap, (int col, int row) move)
+        => Map.IsOnMap(move) 
+           && GameplayScene.IsEmptyOrPermeable(charMap[move.col, move.row])
+           && MostRecentPosition != move;
     
     internal double DistanceTo((int col, int row) pos)
         => Math.Sqrt(Math.Pow(pos.col - Position.col, 2) + Math.Pow(pos.row - Position.row, 2));
+
+    private bool TryMoveStraight(char[,] charMap)
+    {
+        var up = Position with { row = Position.row + 1 };
+        if (MostRecentPosition.row < Position.row && IsLegalMove(charMap, up))
+        {
+            MostRecentPosition = Position;
+            Position = up;
+            return true;
+        } 
+        var down = Position with { row = Position.row - 1 };
+        if (MostRecentPosition.row > Position.row && IsLegalMove(charMap, down))
+        {
+            MostRecentPosition = Position;
+            Position = down;
+            return true;
+        } 
+        var right = Position with { col = Position.col + 1 };
+        if (MostRecentPosition.col < Position.col && IsLegalMove(charMap, right))
+        {
+            MostRecentPosition = Position;
+            Position = right;
+            return true;
+        } 
+        var left = Position with { col = Position.col - 1 };
+        if (MostRecentPosition.col > Position.col && IsLegalMove(charMap, left))
+        {
+            MostRecentPosition = Position;
+            Position = left;
+            return true;
+        }
+        return false;
+    }
 }
