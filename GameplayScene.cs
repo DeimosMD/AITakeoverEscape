@@ -13,8 +13,8 @@ internal class GameplayScene : IScene
     private const char OpenHorizontalDoorRenderChar = '_';
     private const char TrashDisposalDoorRenderChar = 'W';
     private const double PlayerMovesPerSecond = 5;
-    private const int FlashlightFloodFillRange = 6;
-    private const double FlashlightAbsoluteDistanceRange = 4;
+    private const int FlashlightFloodFillRange = 5;
+    private const double FlashlightAbsoluteDistanceRange = 3.75;
     private const int ShipLightsFloodFillRange = 12;
     private const double ShipLightsAbsoluteDistanceRange = 8;
     private const int CaptainMinAge = 25;
