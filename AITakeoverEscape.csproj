@@ -5,6 +5,10 @@
         <TargetFramework>net9.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
+	<SelfContained>true</SelfContained>
+	<PublishSingleFile>true</PublishSingleFile>
+        <RuntimeIdentifier>linux-x64</RuntimeIdentifier>
+	<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
     </PropertyGroup>
 
 </Project>
