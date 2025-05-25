@@ -13,8 +13,9 @@ internal class GameplayScene : IScene
     private const char OpenHorizontalDoorRenderChar = '_';
     private const char TrashDisposalDoorRenderChar = 'W';
     private const double PlayerMovesPerSecond = 5;
-    private const int FlashlightFloodFillRange = 5;
-    private const double FlashlightAbsoluteDistanceRange = 3.75;
+    private const int FlashlightRootDirectionalDistance = 2;
+    private const int FlashlightFloodFillRange = 4;
+    private const double FlashlightAbsoluteDistanceRange = 2.75;
     private const int ShipLightsFloodFillRange = 12;
     private const double ShipLightsAbsoluteDistanceRange = 8;
     private const int CaptainMinAge = 25;
@@ -52,6 +53,7 @@ internal class GameplayScene : IScene
     private bool HasCrowBarAttackedBeenUsed { get; set; }
     private double TimeSinceLastPasscodeAttempt { get; set; }
     private Stopwatch Timer { get; } = Stopwatch.StartNew();
+    private (int col, int row) PlayerRecentPos { get; set; }
 
     private int[] RepairDoorPuzzleSolution { get; } = new int[DoorRepairPuzzlePartCount]
         .Select(_ => DoorRepairPuzzleMinSolutionValue + Random.Shared.Next(
@@ -610,10 +612,13 @@ internal class GameplayScene : IScene
     private void AddVisibleCharMapToFrame(char[,] completeCharMap)
     {
         bool areShipLightsOn = AreShipLightsOn();
+        var visibilityRangeRoots = GetVisibilityRangeRoots(completeCharMap);
         List<(int col, int row)> allLitUp = GetAllInFloodFillRange(
-                areShipLightsOn ? ShipLightsFloodFillRange : FlashlightFloodFillRange, completeCharMap);
-        allLitUp = FilterForInFlashLightAbsoluteRange(
-            allLitUp, areShipLightsOn ? ShipLightsAbsoluteDistanceRange : FlashlightAbsoluteDistanceRange);
+                areShipLightsOn ? ShipLightsFloodFillRange : FlashlightFloodFillRange, 
+                completeCharMap, visibilityRangeRoots);
+        allLitUp = FilterForInFlashLightAbsoluteRange(allLitUp, 
+            areShipLightsOn ? ShipLightsAbsoluteDistanceRange : FlashlightAbsoluteDistanceRange, 
+            visibilityRangeRoots);
         for (int row = 0; row < Map.Height; row++)
         {
             for (int col = 0; col < Map.Width; col++)
@@ -636,11 +641,12 @@ internal class GameplayScene : IScene
            || FrameNum < Program.TargetFramesPerSecond;
 
 
-    private List<(int col, int row)> GetAllInFloodFillRange(int reiterations, char[,] charMap)
-    {
+    private List<(int col, int row)> GetAllInFloodFillRange(
+        int reiterations, char[,] charMap, List<(int col, int row)> rangeRoots
+    ) {
         List<(int col, int row)> results = []; // all non-transparent points visible as result of flashlight
         List<(int col, int row)> allEmptyFoundList = []; 
-        List<(int col, int row)> recentEmptyFoundList = [PlayerPosition]; // uses player position as starting point
+        List<(int col, int row)> recentEmptyFoundList = rangeRoots; // starting points 
         for (int i = 0; i < reiterations; i++)
         {
             List<(int col, int row)> currentEmptyFoundList = [];
@@ -678,16 +684,22 @@ internal class GameplayScene : IScene
     }
 
     private List<(int col, int row)> FilterForInFlashLightAbsoluteRange(
-        List<(int col, int row)> positionList, double range
+        List<(int col, int row)> positionList, double range, List<(int col, int row)> rangeRoots
     ) {
         List<(int col, int row)> results = new();
         foreach (var position in positionList)
         {
-            if (
-                range >=
-                Math.Sqrt(Square(PlayerPosition.row - position.row) + Square(PlayerPosition.col - position.col))
-            ) {
-                results.Add(position);
+            // if is within range of any roots, then adds to results
+            foreach (var root in rangeRoots)
+            {
+                if (
+                    range >=
+                    Math.Sqrt(Square(root.row - position.row) + Square(root.col - position.col))
+                )
+                {
+                    results.Add(position);
+                    break;
+                }
             }
         }
         
@@ -696,6 +708,64 @@ internal class GameplayScene : IScene
 
     private int Square(int x) => x * x;
 
+    private List<(int col, int row)> GetVisibilityRangeRoots(char[,] charMap)
+    {
+        List<(int col, int row)> results = [PlayerPosition];
+        // if we´re using the ship lights instead of a flashlight, then it shouldn´t be directional
+        if (AreShipLightsOn()) return results; 
+        
+        if (PlayerRecentPos.col < PlayerPosition.col)
+        {
+            for (int col = PlayerPosition.col + 1; col <= PlayerPosition.col + FlashlightRootDirectionalDistance; col++)
+            {
+                if (IsTransparent(charMap[col, PlayerPosition.row]))
+                    results.Add(PlayerPosition with { col = col });
+                else break;
+            }
+
+            return results;
+        }
+
+        if (PlayerRecentPos.col > PlayerPosition.col)
+        {
+            for (int col = PlayerPosition.col - 1; col >= PlayerPosition.col - FlashlightRootDirectionalDistance; col--)
+            {
+                if (IsTransparent(charMap[col, PlayerPosition.row]))
+                    results.Add(PlayerPosition with { col = col });
+                else break;
+            }
+
+            return results;
+        }
+
+        if (PlayerRecentPos.row < PlayerPosition.row)
+        {
+            for (int row = PlayerPosition.row + 1; row <= PlayerPosition.row + FlashlightRootDirectionalDistance; row++)
+            {
+                if (IsTransparent(charMap[PlayerPosition.col, row]))
+                    results.Add(PlayerPosition with { row = row});
+                else break;
+            }
+
+            return results;
+        }
+
+        if (PlayerRecentPos.row > PlayerPosition.row)
+        {
+            for (int row = PlayerPosition.row - 1; row >= PlayerPosition.row - FlashlightRootDirectionalDistance; row--)
+            {
+                 if (IsTransparent(charMap[PlayerPosition.col, row])) 
+                     results.Add(PlayerPosition with { row = row});
+                 else break;
+            }
+
+            return results;
+        }
+        
+        // only reaches here before player ever moves and possibly during trash disposal unit animation/sequence
+        return results;
+    }
+    
     private char[,] GetCompleteCharMap()
     {
         char[,] result = new char[Map.Width, Map.Height];
@@ -752,7 +822,8 @@ internal class GameplayScene : IScene
                 (Program.PressedKeys.Contains(ConsoleKey.UpArrow) || Program.PressedKeys.Contains(ConsoleKey.W))
                 && IsEmptyOrPermeable(completeCharMap[PlayerPosition.col, PlayerPosition.row-1])
                 )
-            {
+            { 
+                PlayerRecentPos = PlayerPosition; 
                 PlayerPosition = (PlayerPosition.col, PlayerPosition.row-1);
                 PlayerTimeSinceLastMove = 0;
                 return;
@@ -763,19 +834,21 @@ internal class GameplayScene : IScene
                  && IsEmptyOrPermeable(completeCharMap[PlayerPosition.col, PlayerPosition.row+1])
                 )
             {
-                 PlayerPosition = (PlayerPosition.col, PlayerPosition.row+1);
-                 PlayerTimeSinceLastMove = 0;
-                 return;
+                PlayerRecentPos = PlayerPosition;
+                PlayerPosition = (PlayerPosition.col, PlayerPosition.row+1);
+                PlayerTimeSinceLastMove = 0;
+                return;
             }
             
             if (
                 (Program.PressedKeys.Contains(ConsoleKey.LeftArrow) || Program.PressedKeys.Contains(ConsoleKey.A))
                 && IsEmptyOrPermeable(completeCharMap[PlayerPosition.col-1, PlayerPosition.row])
                 )
-            {
-                 PlayerPosition = (PlayerPosition.col-1, PlayerPosition.row);
-                 PlayerTimeSinceLastMove = 0;
-                 return;
+            { 
+                PlayerRecentPos = PlayerPosition; 
+                PlayerPosition = (PlayerPosition.col-1, PlayerPosition.row);
+                PlayerTimeSinceLastMove = 0;
+                return;
             }
                         
             if (
@@ -783,8 +856,9 @@ internal class GameplayScene : IScene
                 && IsEmptyOrPermeable(completeCharMap[PlayerPosition.col+1, PlayerPosition.row])
                 ) 
             {
-                 PlayerPosition = (PlayerPosition.col+1, PlayerPosition.row);
-                 PlayerTimeSinceLastMove = 0;
+                PlayerRecentPos = PlayerPosition;
+                PlayerPosition = (PlayerPosition.col+1, PlayerPosition.row);
+                PlayerTimeSinceLastMove = 0;
             }
         }
     }
